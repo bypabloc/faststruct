@@ -1,38 +1,83 @@
 {
 	"name": "faststruct",
-	"displayName": "faststruct",
-	"description": "FastStruct",
+	"displayName": "FastStruct",
+	"description": "VSCode extension to quickly create project structures",
 	"version": "0.0.1",
-	"publisher": "vscode-samples",
-	"repository": "https://github.com/bypabloc/faststruct",
 	"engines": {
-		"vscode": "^1.74.0"
+	  "vscode": "^1.60.0"
 	},
 	"categories": [
-		"Other"
+	  "Other"
 	],
-	"activationEvents": [],
+	"activationEvents": [
+	  "onCommand:faststruct.createStructure",
+	  "onCommand:faststruct.createStructureContext"
+	],
 	"main": "./out/main.js",
 	"contributes": {
-        "commands": [
-            {
-                "command": "faststruct.createStructure",
-                "title": "FastStruct: Create Structure"
-            }
-        ]
+	  "commands": [
+		{
+		  "command": "faststruct.createStructure",
+		  "title": "Create Project Structure",
+		  "category": "FastStruct"
+		},
+		{
+		  "command": "faststruct.createStructureContext",
+		  "title": "Create Project Structure Here",
+		  "category": "FastStruct"
+		}
+	  ],
+	  "menus": {
+		"explorer/context": [
+		  {
+			"when": "explorerResourceIsFolder",
+			"command": "faststruct.createStructureContext",
+			"group": "2_workspace"
+		  }
+		]
+	  },
+	  "configuration": {
+		"title": "FastStruct",
+		"properties": {
+		  "faststruct.exclude": {
+			"type": "object",
+			"default": {
+			  "folders": ["node_modules", ".git", "dist", "build"],
+			  "files": ["*.log", "*.lock", "package-lock.json"]
+			},
+			"description": "Patterns to exclude from the structure tree",
+			"properties": {
+			  "folders": {
+				"type": "array",
+				"items": {
+				  "type": "string"
+				},
+				"description": "Folders to exclude"
+			  },
+			  "files": {
+				"type": "array",
+				"items": {
+				  "type": "string"
+				},
+				"description": "File patterns to exclude"
+			  }
+			}
+		  }
+		}
+	  }
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"lint": "eslint \"src/**/*.ts\"",
-		"watch": "tsc -watch -p ./"
+	  "vscode:prepublish": "npm run compile",
+	  "compile": "tsc -p ./",
+	  "watch": "tsc -watch -p ./",
+	  "lint": "eslint . --ext .ts,.tsx"
 	},
 	"devDependencies": {
-		"@types/node": "^20",
-		"@types/vscode": "^1.73.0",
-		"@typescript-eslint/eslint-plugin": "^7.14.0",
-		"@typescript-eslint/parser": "^7.14.0",
-		"eslint": "^8.26.0",
-		"typescript": "^5.6.2"
+	  "@types/node": "^16.x",
+	  "@types/vscode": "^1.60.0",
+	  "@typescript-eslint/eslint-plugin": "^5.x",
+	  "@typescript-eslint/parser": "^5.x",
+	  "eslint": "^8.x",
+	  "typescript": "^4.x"
 	}
-}
+  }
