@@ -1,47 +1,38 @@
 {
-    "name": "faststruct",
-    "displayName": "FastStruct",
-    "description": "Quickly create and manage code structures",
-    "version": "0.0.1",
-    "type": "commonjs",
-    "engines": {
-        "vscode": "^1.60.0"
-    },
-    "categories": ["Other"],
-    "activationEvents": [
-        "onStartupFinished"
-    ],
-    "main": "./src/main.js",
-    "contributes": {
+	"name": "faststruct",
+	"displayName": "faststruct",
+	"description": "FastStruct",
+	"version": "0.0.1",
+	"publisher": "vscode-samples",
+	"repository": "https://github.com/bypabloc/faststruct",
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [],
+	"main": "./out/main.js",
+	"contributes": {
         "commands": [
             {
                 "command": "faststruct.createStructure",
                 "title": "FastStruct: Create Structure"
             }
-        ],
-        "configuration": {
-            "title": "FastStruct",
-            "properties": {
-                "faststruct.useTypeScript": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Use TypeScript structure"
-                },
-                "faststruct.includeTests": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Include test directory"
-                }
-            }
-        }
-    },
-    "scripts": {
-        "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
-    },
-    "devDependencies": {
-        "@types/vscode": "^1.60.0",
-        "@vscode/test-electron": "^2.3.8",
-        "jest": "^29.0.0",
-        "eslint": "^8.0.0"
-    }
+        ]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint \"src/**/*.ts\"",
+		"watch": "tsc -watch -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^20",
+		"@types/vscode": "^1.73.0",
+		"@typescript-eslint/eslint-plugin": "^7.14.0",
+		"@typescript-eslint/parser": "^7.14.0",
+		"eslint": "^8.26.0",
+		"typescript": "^5.6.2"
+	}
 }
