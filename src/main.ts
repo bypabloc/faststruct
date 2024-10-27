@@ -8,6 +8,7 @@ interface TreeItem {
   name: string;
   type: "file" | "directory";
   children?: TreeItem[];
+  path?: string;
 }
 
 // Interfaz para la configuración
@@ -46,7 +47,6 @@ export function activate(context: vscode.ExtensionContext) {
     const patterns =
       type === "directory" ? config.exclude.folders : config.exclude.files;
     return patterns.some((pattern) => {
-      // Si el patrón contiene caracteres especiales de glob, usa minimatch
       if (
         pattern.includes("*") ||
         pattern.includes("?") ||
@@ -54,9 +54,44 @@ export function activate(context: vscode.ExtensionContext) {
       ) {
         return minimatch(name, pattern);
       }
-      // Si no, usa comparación directa
       return name === pattern;
     });
+  }
+
+  // Lista de extensiones conocidas de archivos binarios
+  const BINARY_EXTENSIONS = new Set([
+    ".ico",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".xls",
+    ".xlsx",
+    ".zip",
+    ".rar",
+    ".7z",
+    ".tar",
+    ".gz",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".class",
+    ".pyc",
+    ".o",
+    ".obj",
+  ]);
+
+  // Función para verificar si es un archivo binario basado en la extensión
+  function isBinaryFile(filePath: string): boolean {
+    const ext = path.extname(filePath).toLowerCase();
+    return BINARY_EXTENSIONS.has(ext);
   }
 
   // Función para leer la estructura de directorios recursivamente
@@ -68,7 +103,6 @@ export function activate(context: vscode.ExtensionContext) {
     const structure: TreeItem[] = [];
 
     for (const item of items) {
-      // Verificar si el item debe ser excluido
       if (
         shouldExclude(
           item.name,
@@ -86,22 +120,70 @@ export function activate(context: vscode.ExtensionContext) {
           name: item.name,
           type: "directory",
           children: readDirectoryStructure(fullPath, config),
+          path: fullPath,
         });
       } else {
         structure.push({
           name: item.name,
           type: "file",
+          path: fullPath,
         });
       }
     }
 
-    // Ordenar: primero directorios, luego archivos, ambos alfabéticamente
     return structure.sort((a, b) => {
       if (a.type === b.type) {
         return a.name.localeCompare(b.name);
       }
       return a.type === "directory" ? -1 : 1;
     });
+  }
+
+  // Función para generar la representación en texto de la estructura y contenido
+  function generateFullOutput(
+    items: TreeItem[],
+    basePath: string,
+    prefix = "",
+    isLast = true
+  ): string {
+    let result = "";
+
+    // Primero generamos el árbol de directorios
+    result += generateTreeText(items, prefix, isLast);
+    result += "\n\n";
+
+    // Luego agregamos el contenido de cada archivo
+    let fileContents = "";
+    const processItems = (items: TreeItem[]) => {
+      for (const item of items) {
+        if (item.path) {
+          const relativePath = path.relative(basePath, item.path);
+          if (item.type === "file") {
+            fileContents += `Path: ${relativePath}\n`;
+            if (isBinaryFile(item.path)) {
+              fileContents += `Content: [Binary file]\n\n`;
+            } else {
+              try {
+                const content = fs.readFileSync(item.path, "utf8");
+                fileContents += `Content:\n\`\`\`\n${content}\n\`\`\`\n\n`;
+              } catch (error) {
+                const errorMessage =
+                  error instanceof Error ? error.message : String(error);
+                fileContents += `Content: [Error reading file: ${errorMessage}]\n\n`;
+              }
+            }
+          }
+          if (item.type === "directory" && item.children) {
+            processItems(item.children);
+          }
+        }
+      }
+    };
+
+    processItems(items);
+    result += fileContents;
+
+    return result;
   }
 
   // Función para generar la representación en texto de la estructura
@@ -120,7 +202,6 @@ export function activate(context: vscode.ExtensionContext) {
 
       result += prefix + (isLastItem ? "└── " : "├── ");
 
-      // Agregar emoji de carpeta para directorios
       if (item.type === "directory") {
         result += `📁${item.name}\n`;
         if (item.children) {
@@ -138,7 +219,6 @@ export function activate(context: vscode.ExtensionContext) {
   const createStructureContextCommand = vscode.commands.registerCommand(
     "faststruct.createStructureContext",
     async (uri: vscode.Uri) => {
-      // Si no se proporciona URI, intentamos obtener el workspace actual
       if (!uri) {
         if (vscode.workspace.workspaceFolders?.length > 0) {
           uri = vscode.workspace.workspaceFolders[0].uri;
@@ -151,32 +231,27 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       try {
-        // Obtener la ruta del directorio seleccionado
         const folderPath = uri.fsPath;
-
-        // Obtener la configuración para el workspace actual
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
         const config = getConfiguration(workspaceFolder);
-
-        // Leer la estructura del directorio
         const structure = readDirectoryStructure(folderPath, config);
+        const fullOutput = generateFullOutput(
+          [
+            {
+              name: path.basename(folderPath),
+              type: "directory",
+              children: structure,
+              path: folderPath,
+            },
+          ],
+          folderPath
+        );
 
-        // Generar el texto del árbol
-        const treeText = generateTreeText([
-          {
-            name: path.basename(folderPath),
-            type: "directory",
-            children: structure,
-          },
-        ]);
-
-        // Crear un nuevo documento con la estructura
         const document = await vscode.workspace.openTextDocument({
-          content: treeText,
-          language: "plaintext",
+          content: fullOutput,
+          language: "markdown",
         });
 
-        // Mostrar el documento
         await vscode.window.showTextDocument(document, {
           preview: false,
           viewColumn: vscode.ViewColumn.Beside,
@@ -196,6 +271,5 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // Agregar los comandos al contexto de subscripciones
   context.subscriptions.push(createStructureContextCommand);
 }
