@@ -219,9 +219,11 @@ export function activate(context: vscode.ExtensionContext) {
   const createStructureContextCommand = vscode.commands.registerCommand(
     "faststruct.createStructureContext",
     async (uri: vscode.Uri) => {
+      // Si no se proporciona URI, intentamos obtener el workspace actual
       if (!uri) {
-        if (vscode.workspace.workspaceFolders?.length > 0) {
-          uri = vscode.workspace.workspaceFolders[0].uri;
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          uri = workspaceFolders[0].uri;
         } else {
           vscode.window.showErrorMessage(
             "No folder selected and no workspace folder found."

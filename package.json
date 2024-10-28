@@ -3,81 +3,100 @@
 	"displayName": "FastStruct",
 	"description": "VSCode extension to quickly create project structures",
 	"version": "0.0.1",
+	"publisher": "the-full-stack",
+	"author": {
+		"name": "Pablo Contreras"
+	},
 	"engines": {
-	  "vscode": "^1.60.0"
+		"vscode": "^1.60.0"
+	},
+	"license": "GPL-3.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/bypabloc/faststruct"
 	},
 	"categories": [
-	  "Other"
+		"Other"
 	],
 	"activationEvents": [
-	  "onCommand:faststruct.createStructure",
-	  "onCommand:faststruct.createStructureContext"
+		"onCommand:faststruct.createStructure",
+		"onCommand:faststruct.createStructureContext"
 	],
 	"main": "./out/main.js",
 	"contributes": {
-	  "commands": [
-		{
-		  "command": "faststruct.createStructure",
-		  "title": "Create Project Structure",
-		  "category": "FastStruct"
-		},
-		{
-		  "command": "faststruct.createStructureContext",
-		  "title": "Create Project Structure Here",
-		  "category": "FastStruct"
-		}
-	  ],
-	  "menus": {
-		"explorer/context": [
-		  {
-			"when": "explorerResourceIsFolder",
-			"command": "faststruct.createStructureContext",
-			"group": "2_workspace"
-		  }
-		]
-	  },
-	  "configuration": {
-		"title": "FastStruct",
-		"properties": {
-		  "faststruct.exclude": {
-			"type": "object",
-			"default": {
-			  "folders": ["node_modules", ".git", "dist", "build"],
-			  "files": ["*.log", "*.lock", "package-lock.json"]
+		"commands": [
+			{
+				"command": "faststruct.createStructure",
+				"title": "Create Project Structure",
+				"category": "FastStruct"
 			},
-			"description": "Patterns to exclude from the structure tree",
-			"properties": {
-			  "folders": {
-				"type": "array",
-				"items": {
-				  "type": "string"
-				},
-				"description": "Folders to exclude"
-			  },
-			  "files": {
-				"type": "array",
-				"items": {
-				  "type": "string"
-				},
-				"description": "File patterns to exclude"
-			  }
+			{
+				"command": "faststruct.createStructureContext",
+				"title": "Create Project Structure Here",
+				"category": "FastStruct"
 			}
-		  }
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"when": "explorerResourceIsFolder",
+					"command": "faststruct.createStructureContext",
+					"group": "2_workspace"
+				}
+			]
+		},
+		"configuration": {
+			"title": "FastStruct",
+			"properties": {
+				"faststruct.exclude": {
+					"type": "object",
+					"default": {
+						"folders": [
+							"node_modules",
+							".git",
+							"dist",
+							"build"
+						],
+						"files": [
+							"*.log",
+							"*.lock",
+							"package-lock.json"
+						]
+					},
+					"description": "Patterns to exclude from the structure tree",
+					"properties": {
+						"folders": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "Folders to exclude"
+						},
+						"files": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "File patterns to exclude"
+						}
+					}
+				}
+			}
 		}
-	  }
 	},
 	"scripts": {
-	  "vscode:prepublish": "npm run compile",
-	  "compile": "tsc -p ./",
-	  "watch": "tsc -watch -p ./",
-	  "lint": "eslint . --ext .ts,.tsx"
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"lint": "eslint . --ext .ts,.tsx"
 	},
 	"devDependencies": {
-	  "@types/node": "^16.x",
-	  "@types/vscode": "^1.60.0",
-	  "@typescript-eslint/eslint-plugin": "^5.x",
-	  "@typescript-eslint/parser": "^5.x",
-	  "eslint": "^8.x",
-	  "typescript": "^4.x"
+		"@types/minimatch": "^5.1.2",
+		"@types/node": "^16.x",
+		"@types/vscode": "^1.60.0",
+		"@typescript-eslint/eslint-plugin": "^5.x",
+		"@typescript-eslint/parser": "^5.x",
+		"eslint": "^8.x",
+		"typescript": "^4.x"
 	}
-  }
+}
