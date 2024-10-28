@@ -210,10 +210,6 @@ function activate(context) {
         ".o",
         ".obj",
     ]);
-    function isBinaryFile(filePath) {
-        const ext = path.extname(filePath).toLowerCase();
-        return BINARY_EXTENSIONS.has(ext);
-    }
     function readDirectoryStructure(dirPath, config, basePath = dirPath) {
         const items = fs.readdirSync(dirPath, { withFileTypes: true });
         const structure = [];
@@ -245,8 +241,72 @@ function activate(context) {
             return a.type === "directory" ? -1 : 1;
         });
     }
+    function isFileBinary(filePath) {
+        try {
+            // Lee solo los primeros bytes del archivo
+            const buffer = Buffer.alloc(8);
+            const fd = fs.openSync(filePath, "r");
+            const bytesRead = fs.readSync(fd, buffer, 0, 8, 0);
+            fs.closeSync(fd);
+            // Verifica las firmas comunes de archivos binarios
+            const signatures = {
+                // Imágenes
+                PNG: [0x89, 0x50, 0x4e, 0x47],
+                GIF: [0x47, 0x49, 0x46, 0x38],
+                JPEG: [0xff, 0xd8, 0xff],
+                BMP: [0x42, 0x4d],
+                WEBP: [0x52, 0x49, 0x46, 0x46],
+                // Archivos comprimidos
+                ZIP: [0x50, 0x4b, 0x03, 0x04],
+                RAR: [0x52, 0x61, 0x72, 0x21],
+                GZIP: [0x1f, 0x8b],
+                // PDF
+                PDF: [0x25, 0x50, 0x44, 0x46],
+            };
+            // Verifica las firmas conocidas
+            for (const [_, signature] of Object.entries(signatures)) {
+                if (signature.every((byte, i) => buffer[i] === byte)) {
+                    return true;
+                }
+            }
+            // Verifica bytes nulos o caracteres de control
+            for (let i = 0; i < bytesRead; i++) {
+                if (buffer[i] === 0x00 || (buffer[i] < 0x09 && buffer[i] !== 0x0a)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        catch (error) {
+            // Si hay algún error al leer el archivo, asumimos que es binario
+            return true;
+        }
+    }
+    function tryReadFile(filePath) {
+        try {
+            // Primero verificamos si el archivo parece ser binario
+            if (isFileBinary(filePath)) {
+                return { content: null, error: "Binary file" };
+            }
+            // Si no es binario, intentamos leer el contenido como texto
+            try {
+                const content = fs.readFileSync(filePath, "utf8");
+                // Última verificación para caracteres no imprimibles
+                if (/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(content)) {
+                    return { content: null, error: "Binary file" };
+                }
+                return { content };
+            }
+            catch {
+                return { content: null, error: "Binary file" };
+            }
+        }
+        catch (error) {
+            return { content: null, error: "Binary file" };
+        }
+    }
     function generateFullOutput(items, basePath, config, prefix = "", isLast = true) {
-        let result = AI_STRUCTURE_GUIDE; // Agregamos el resumen al principio
+        let result = AI_STRUCTURE_GUIDE;
         result += generateTreeText(items, prefix, isLast);
         result += "\n\n";
         let fileContents = "";
@@ -260,18 +320,12 @@ function activate(context) {
                             fileContents += `Content: [Content excluded by configuration]\n\n`;
                             continue;
                         }
-                        if (isBinaryFile(item.path)) {
-                            fileContents += `Content: [Binary file]\n\n`;
+                        const { content, error } = tryReadFile(item.path);
+                        if (error) {
+                            fileContents += `Content: [${error}]\n\n`;
                         }
-                        else {
-                            try {
-                                const content = fs.readFileSync(item.path, "utf8");
-                                fileContents += `Content:\n\`\`\`\n${content}\n\`\`\`\n\n`;
-                            }
-                            catch (error) {
-                                const errorMessage = error instanceof Error ? error.message : String(error);
-                                fileContents += `Content: [Error reading file: ${errorMessage}]\n\n`;
-                            }
+                        else if (content !== null) {
+                            fileContents += `Content:\n\`\`\`\n${content}\n\`\`\`\n\n`;
                         }
                     }
                     if (item.type === "directory" && item.children) {

@@ -60,7 +60,7 @@
 			{
 			  "when": "explorerResourceIsFolder",
 			  "command": "faststruct.createStructureContext",
-			  "group": "navigation"
+			  "group": "z_commands"
 			}
 		  ]
 		},
