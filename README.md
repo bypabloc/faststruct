@@ -72,15 +72,16 @@ The extension generates output in this format:
     └── README.md
 
 Path: src/index.js
+
 Content:
-```javascript
+´´´javascript
 console.log('Hello World');
-```
+´´´
 ```
 
 ## Requirements 📋
 
-- Visual Studio Code v1.60.0 or higher
+- Visual Studio Code v1.94.0 or higher
 
 ## License 📜
 
