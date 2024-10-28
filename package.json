@@ -2,13 +2,13 @@
 	"name": "faststruct",
 	"displayName": "FastStruct",
 	"description": "VSCode extension to quickly create project structures",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"publisher": "the-full-stack",
 	"author": {
 		"name": "Pablo Contreras"
 	},
 	"engines": {
-		"vscode": "^1.60.0"
+		"vscode": "^1.94.0"
 	},
 	"license": "GPL-3.0",
 	"repository": {
