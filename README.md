@@ -2,7 +2,7 @@
 
 A VS Code extension to quickly visualize and document your project's file structure. FastStruct helps you create clear, well-formatted documentation of your project's directory structure, including file contents when needed.
 
-![FastStruct Demo](./assets/demo.gif)
+![FastStruct Demo](./assets/animated/demo.gif)
 
 ## Features ✨
 
@@ -37,27 +37,205 @@ You can also use the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 1. Type "FastStruct: Create Structure"
 2. Press Enter
 
-### Configuration ⚙️
+## Configuration Guide ⚙️
 
-Configure exclusions in your VS Code settings:
+### Basic Configuration Structure
+
+FastStruct can be configured using the `faststruct.config` setting in your VS Code settings (`settings.json`):
 
 ```json
 {
-  "faststruct.exclude": {
-    "folders": [
-      "node_modules",
-      ".git",
-      "dist",
-      "build"
-    ],
-    "files": [
-      "*.log",
-      "*.lock",
-      "package-lock.json"
+  "faststruct.config": {
+    "debug": false,
+    "exclude": {
+      "folders": [...],
+      "files": [...],
+      "advanced": {
+        "patterns": [...],
+        "specificFiles": [...],
+        "specificFolders": [...],
+        "regexPatterns": [...]
+      }
+    },
+    "excludeContent": {
+      "files": [...],
+      "folders": [...],
+      "patterns": [...]
+    }
+  }
+}
+```
+
+### Configuration Options
+
+#### 1. Debug Mode
+```json
+"debug": true
+```
+Enables detailed logging for troubleshooting (default: `false`)
+
+#### 2. Basic Exclusions
+
+##### Folder Exclusions
+```json
+"exclude": {
+  "folders": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    ".tmp",
+    "out",
+    ".astro",
+    ".unlighthouse"
+  ]
+}
+```
+- Excludes entire folders from the structure
+- Supports simple patterns and exact matches
+
+##### File Exclusions
+```json
+"exclude": {
+  "files": [
+    "*.log",
+    "*.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ]
+}
+```
+- Excludes specific files from the structure
+- Supports wildcards and exact filenames
+
+#### 3. Advanced Exclusions
+
+##### Pattern-based Exclusions
+```json
+"exclude": {
+  "advanced": {
+    "patterns": [
+      "**/*.min.js",
+      "**/*.generated.*"
     ]
   }
 }
 ```
+Uses glob patterns for more complex matching
+
+##### Specific File/Folder Exclusions
+```json
+"exclude": {
+  "advanced": {
+    "specificFiles": [
+      "src/config/sensitive.json"
+    ],
+    "specificFolders": [
+      "src/utils/",
+      "tests/fixtures/"
+    ]
+  }
+}
+```
+Excludes specific files/folders using relative paths
+
+##### Regex Patterns
+```json
+"exclude": {
+  "advanced": {
+    "regexPatterns": [
+      "src/.*\\.md$",
+      "docs/.*\\.temp\\.*"
+    ]
+  }
+}
+```
+Uses regular expressions for complex pattern matching
+
+#### 4. Content Exclusions
+
+Hide file contents while keeping files in the structure:
+
+```json
+"excludeContent": {
+  "files": [
+    "*.config.js",
+    "db/data.ts"
+  ],
+  "folders": [
+    "src/config",
+    "tests"
+  ],
+  "patterns": [
+    "*.vsix",
+    "**/*.secret.*",
+    "**/.secrets**",
+    "**/*/.env**"
+  ]
+}
+```
+
+### Example Full Configuration
+
+```json
+{
+  "faststruct.config": {
+    "debug": true,
+    "exclude": {
+      "folders": [
+        "node_modules",
+        ".git",
+        "dist",
+        "build",
+        ".tmp",
+        "out"
+      ],
+      "files": [
+        "*.log",
+        "*.lock",
+        "package-lock.json"
+      ],
+      "advanced": {
+        "patterns": ["**/*.min.js", "**/*.generated.*"],
+        "specificFiles": ["src/config/sensitive.json"],
+        "specificFolders": ["src/utils/", "tests/fixtures/"],
+        "regexPatterns": ["src/.*\\.md$", "docs/.*\\.temp\\.*"]
+      }
+    },
+    "excludeContent": {
+      "files": ["*.config.js", "db/data.ts"],
+      "folders": ["src/config", "tests"],
+      "patterns": [
+        "*.vsix",
+        "**/*.secret.*",
+        "**/.secrets**",
+        "**/*/.env**"
+      ]
+    }
+  }
+}
+```
+
+### Configuration Tips 💡
+
+1. **Workspace vs User Settings**
+   - Use workspace settings for project-specific exclusions
+   - Use user settings for personal preferences
+
+2. **Pattern Priority**
+   - Specific paths take precedence over patterns
+   - Advanced exclusions override basic exclusions
+
+3. **Performance**
+   - Use simpler patterns when possible
+   - Avoid excessive use of complex regex patterns
+   - Use `debug: true` to troubleshoot pattern matching
+
+4. **Security**
+   - Use `excludeContent` for sensitive files
+   - Double-check patterns before sharing structure outputs
+   - Consider using `.gitignore` patterns as a base
 
 ## Output Example 📋
 
@@ -72,7 +250,6 @@ The extension generates output in this format:
     └── README.md
 
 Path: src/index.js
-
 Content:
 ´´´javascript
 console.log('Hello World');
