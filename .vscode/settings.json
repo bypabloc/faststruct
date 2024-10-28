@@ -10,6 +10,17 @@
       ".astro",
       ".unlighthouse"
     ],
-    "files": ["*.log", "*.lock", "package-lock.json"]
+    "files": ["*.log", "*.lock", "package-lock.json"],
+    "advanced": {
+      "patterns": ["**/*.min.js", "**/*.generated.*"],
+      "specificFiles": ["db/data.ts", "src/config/sensitive.json"],
+      "specificFolders": ["src/utils/", "tests/fixtures/"],
+      "regexPatterns": ["src/.*\\.md$", "docs/.*\\.temp\\.*"]
+    }
+  },
+  "faststruct.excludeContent": {
+    "files": ["*.config.js", "db/data.ts"],
+    "folders": ["src/config", "tests"],
+    "patterns": ["**/*.secret.*", "src/**/*.env"]
   }
 }

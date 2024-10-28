@@ -28,41 +28,68 @@ const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const minimatch_1 = require("minimatch");
-function log(message) {
-    const config = vscode.workspace.getConfiguration("faststruct");
-    if (config.get("debug")) {
+const AI_STRUCTURE_GUIDE = `# AI File Structure Analysis Guide
+
+This output presents a comprehensive view of a file/folder structure and its contents. Here's how to interpret the information:
+
+## Structure Format
+The output is divided into two main sections:
+
+1. TREE VIEW (First section)
+   - Uses ASCII characters to display the hierarchy
+   - └── marks the last item in a group
+   - ├── marks items with more siblings
+   - │   shows the vertical structure continuation
+   - 📁 indicates directories
+   - Files are shown without icons
+
+2. DETAILED CONTENT (Second section)
+   - Each file entry starts with "Path: " showing its relative location
+   - Followed by "Content: " showing either:
+     - Actual file content between \`\`\` markers
+     - [Content excluded by configuration] for excluded content
+     - [Binary file] for non-text files
+     - [Error reading file: {message}] for unreadable files
+
+## Reading Tips
+- Directories are listed before files
+- All items are alphabetically sorted within their level
+- Content exclusions are based on configuration rules
+- Binary files (images, executables, etc.) are automatically detected
+
+---
+Structure and content follows below:
+
+`;
+function log(message, config) {
+    if (config.debug) {
         console.log(`FastStruct: ${message}`);
     }
 }
-log("Enhanced Extension is now active!");
 function activate(context) {
     console.log('Congratulations, your extension "faststruct" is now active!');
-    // Enhanced function to get configuration
     function getConfiguration(workspaceFolder) {
         const config = vscode.workspace.getConfiguration("faststruct", workspaceFolder?.uri);
+        const configFile = config.get("config", {});
         return {
+            debug: configFile.debug || false,
             exclude: {
-                folders: config.get("exclude.folders", [
-                    "node_modules",
-                    ".git",
-                    "dist",
-                    "build",
-                ]),
-                files: config.get("exclude.files", [
-                    "*.log",
-                    "*.lock",
-                    "package-lock.json",
-                ]),
+                folders: configFile.exclude?.folders || [],
+                files: configFile.exclude?.files || [],
                 advanced: {
-                    patterns: config.get("exclude.advanced.patterns", []),
-                    specificFiles: config.get("exclude.advanced.specificFiles", []),
-                    specificFolders: config.get("exclude.advanced.specificFolders", []),
-                    regexPatterns: config.get("exclude.advanced.regexPatterns", []),
+                    patterns: configFile.exclude?.advanced?.patterns || [],
+                    specificFiles: configFile.exclude?.advanced?.specificFiles || [],
+                    specificFolders: configFile.exclude?.advanced?.specificFolders || [],
+                    regexPatterns: configFile.exclude?.advanced?.regexPatterns || [],
                 },
+            },
+            excludeContent: {
+                files: configFile.excludeContent?.files || [],
+                folders: configFile.excludeContent?.folders || [],
+                patterns: configFile.excludeContent?.patterns || [],
             },
         };
     }
-    // Enhanced function to check if a path matches regex patterns
     function matchesRegexPatterns(itemPath, patterns) {
         return patterns.some((pattern) => {
             try {
@@ -70,33 +97,25 @@ function activate(context) {
                 return regex.test(itemPath);
             }
             catch (e) {
-                log(`Invalid regex pattern: ${pattern}`);
                 return false;
             }
         });
     }
-    // Enhanced function to check if a path matches specific paths
     function matchesSpecificPath(itemPath, specificPaths, basePath) {
-        // Normalize all paths and make them relative to basePath
         const normalizedItemPath = path
             .normalize(path.relative(basePath, itemPath))
             .replace(/\\/g, "/");
         return specificPaths.some((specificPath) => {
-            // Normalize the specific path
             const normalizedSpecificPath = path
                 .normalize(specificPath)
                 .replace(/\\/g, "/");
-            // Check for exact match or if the normalized item path starts with the specific path
             return (normalizedItemPath === normalizedSpecificPath ||
                 normalizedItemPath.startsWith(normalizedSpecificPath + "/"));
         });
     }
-    // Función para verificar si un item debe ser excluido
     function shouldExclude(itemPath, name, type, config, basePath) {
-        // Get relative path for matching
         const relativePath = path.relative(basePath, itemPath).replace(/\\/g, "/");
-        log(`Checking exclusion for: ${relativePath}`);
-        // Check basic patterns first
+        log(`Checking exclusion for: ${relativePath}`, config);
         const patterns = type === "directory" ? config.exclude.folders : config.exclude.files;
         const basicPatternMatch = patterns.some((pattern) => {
             if (pattern.includes("*") ||
@@ -105,50 +124,64 @@ function activate(context) {
                 const mm = new minimatch_1.Minimatch(pattern);
                 const matches = mm.match(name);
                 if (matches)
-                    log(`Excluded by basic pattern: ${pattern}`);
+                    log(`Excluded by basic pattern: ${pattern}`, config);
                 return matches;
             }
             const matches = name === pattern;
             if (matches)
-                log(`Excluded by exact name match: ${pattern}`);
+                log(`Excluded by exact name match: ${pattern}`, config);
             return matches;
         });
         if (basicPatternMatch)
             return true;
-        // Check advanced exclusions
         const { advanced } = config.exclude;
-        // Check specific files
-        if (type === "file") {
-            const fileMatch = matchesSpecificPath(itemPath, advanced.specificFiles, basePath);
-            if (fileMatch) {
-                log(`Excluded by specific file match: ${relativePath}`);
-                return true;
-            }
-        }
-        // Check specific folders
-        if (type === "directory") {
-            const folderMatch = matchesSpecificPath(itemPath, advanced.specificFolders, basePath);
-            if (folderMatch) {
-                log(`Excluded by specific folder match: ${relativePath}`);
-                return true;
-            }
-        }
-        // Check regex patterns
-        if (matchesRegexPatterns(relativePath, advanced.regexPatterns)) {
-            log(`Excluded by regex pattern: ${relativePath}`);
+        if (type === "file" &&
+            matchesSpecificPath(itemPath, advanced.specificFiles, basePath)) {
+            log(`Excluded by specific file match: ${relativePath}`, config);
             return true;
         }
-        // Check advanced patterns using minimatch
+        if (type === "directory" &&
+            matchesSpecificPath(itemPath, advanced.specificFolders, basePath)) {
+            log(`Excluded by specific folder match: ${relativePath}`, config);
+            return true;
+        }
+        if (matchesRegexPatterns(relativePath, advanced.regexPatterns)) {
+            log(`Excluded by regex pattern: ${relativePath}`, config);
+            return true;
+        }
         const advancedPatternMatch = advanced.patterns.some((pattern) => {
             const mm = new minimatch_1.Minimatch(pattern);
             const matches = mm.match(relativePath);
             if (matches)
-                log(`Excluded by advanced pattern: ${pattern}`);
+                log(`Excluded by advanced pattern: ${pattern}`, config);
             return matches;
         });
         return advancedPatternMatch;
     }
-    // Lista de extensiones conocidas de archivos binarios
+    function shouldExcludeContent(itemPath, type, config, basePath) {
+        const relativePath = path.relative(basePath, itemPath).replace(/\\/g, "/");
+        if (type === "file" && config.excludeContent.files.includes(relativePath)) {
+            log(`Content excluded by specific file match: ${relativePath}`, config);
+            return true;
+        }
+        if (type === "directory" &&
+            config.excludeContent.folders.includes(relativePath)) {
+            log(`Content excluded by specific folder match: ${relativePath}`, config);
+            return true;
+        }
+        // Añadir verificación de patrones
+        const matchesPattern = config.excludeContent.patterns.some((pattern) => {
+            const mm = new minimatch_1.Minimatch(pattern);
+            const matches = mm.match(relativePath);
+            if (matches)
+                log(`Content excluded by pattern: ${pattern}`, config);
+            return matches;
+        });
+        if (matchesPattern) {
+            return true;
+        }
+        return false;
+    }
     const BINARY_EXTENSIONS = new Set([
         ".ico",
         ".png",
@@ -177,7 +210,6 @@ function activate(context) {
         ".o",
         ".obj",
     ]);
-    // Función para verificar si es un archivo binario basado en la extensión
     function isBinaryFile(filePath) {
         const ext = path.extname(filePath).toLowerCase();
         return BINARY_EXTENSIONS.has(ext);
@@ -213,13 +245,10 @@ function activate(context) {
             return a.type === "directory" ? -1 : 1;
         });
     }
-    // Función para generar la representación en texto de la estructura y contenido
-    function generateFullOutput(items, basePath, prefix = "", isLast = true) {
-        let result = "";
-        // Primero generamos el árbol de directorios
+    function generateFullOutput(items, basePath, config, prefix = "", isLast = true) {
+        let result = AI_STRUCTURE_GUIDE; // Agregamos el resumen al principio
         result += generateTreeText(items, prefix, isLast);
         result += "\n\n";
-        // Luego agregamos el contenido de cada archivo
         let fileContents = "";
         const processItems = (items) => {
             for (const item of items) {
@@ -227,6 +256,10 @@ function activate(context) {
                     const relativePath = path.relative(basePath, item.path);
                     if (item.type === "file") {
                         fileContents += `Path: ${relativePath}\n`;
+                        if (shouldExcludeContent(item.path, "file", config, basePath)) {
+                            fileContents += `Content: [Content excluded by configuration]\n\n`;
+                            continue;
+                        }
                         if (isBinaryFile(item.path)) {
                             fileContents += `Content: [Binary file]\n\n`;
                         }
@@ -242,6 +275,11 @@ function activate(context) {
                         }
                     }
                     if (item.type === "directory" && item.children) {
+                        if (shouldExcludeContent(item.path, "directory", config, basePath)) {
+                            fileContents += `Directory: ${relativePath}\n`;
+                            fileContents += `[Content of this directory is excluded by configuration]\n\n`;
+                            return;
+                        }
                         processItems(item.children);
                     }
                 }
@@ -251,7 +289,6 @@ function activate(context) {
         result += fileContents;
         return result;
     }
-    // Función para generar la representación en texto de la estructura
     function generateTreeText(items, prefix = "", isLast = true) {
         if (items.length === 0)
             return "";
@@ -272,9 +309,7 @@ function activate(context) {
         });
         return result;
     }
-    // Registro del comando para el menú contextual
     const createStructureContextCommand = vscode.commands.registerCommand("faststruct.createStructureContext", async (uri) => {
-        // Si no se proporciona URI, intentamos obtener el workspace actual
         if (!uri) {
             const workspaceFolders = vscode.workspace.workspaceFolders;
             if (workspaceFolders && workspaceFolders.length > 0) {
@@ -297,7 +332,7 @@ function activate(context) {
                     children: structure,
                     path: folderPath,
                 },
-            ], folderPath);
+            ], folderPath, config);
             const document = await vscode.workspace.openTextDocument({
                 content: fullOutput,
                 language: "markdown",
