@@ -272,5 +272,9 @@ If you find a bug or want to request a feature, please create an issue in the [i
 
 Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) first.
 
+## Apóyame con un café ☕
+
+If you find this tool useful and want to support its development, you can buy me a coffee through [Buy Me a Coffee](https://buymeacoffee.com/bypablo).
+
 ---
 Made with ❤️ by Pablo Contreras
