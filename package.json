@@ -88,15 +88,17 @@
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
-		"lint": "eslint . --ext .ts,.tsx"
+		"lint": "eslint . --ext .ts,.tsx",
+		"npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
+		"npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
 	},
 	"devDependencies": {
 		"@types/minimatch": "^5.1.2",
-		"@types/node": "^16.x",
-		"@types/vscode": "^1.60.0",
-		"@typescript-eslint/eslint-plugin": "^5.x",
-		"@typescript-eslint/parser": "^5.x",
-		"eslint": "^8.x",
-		"typescript": "^4.x"
+		"@types/node": "^16.18.115",
+		"@types/vscode": "^1.94.0",
+		"@typescript-eslint/eslint-plugin": "^5.62.0",
+		"@typescript-eslint/parser": "^5.62.0",
+		"eslint": "^8.57.1",
+		"typescript": "^5.6.3"
 	}
 }
