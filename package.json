@@ -2,7 +2,7 @@
 	"name": "faststruct",
 	"displayName": "FastStruct",
 	"description": "VS Code extension to quickly visualize and document your project's file structure",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"publisher": "the-full-stack",
 	"author": {
 		"name": "Pablo Contreras"
@@ -22,6 +22,26 @@
 		"onCommand:faststruct.createStructure",
 		"onCommand:faststruct.createStructureContext"
 	],
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"lint": "eslint . --ext .ts,.tsx",
+		"npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
+		"npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
+	},
+	"dependencies": {
+		"minimatch": "^10.0.1"
+	},
+	"devDependencies": {
+		"@types/minimatch": "^5.1.2",
+		"@types/node": "^22.8.1",
+		"@types/vscode": "^1.94.0",
+		"@typescript-eslint/eslint-plugin": "^5.62.0",
+		"@typescript-eslint/parser": "^5.62.0",
+		"eslint": "^8.57.1",
+		"typescript": "^5.6.3"
+	},
 	"main": "./out/main.js",
 	"contributes": {
 		"commands": [
@@ -88,24 +108,5 @@
 			}
 		}
 	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"lint": "eslint . --ext .ts,.tsx",
-		"npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
-		"npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
-	},
-	"dependencies": {
-		"minimatch": "^3.1.2"
-	},
-	"devDependencies": {
-		"@types/minimatch": "^5.1.2",
-		"@types/node": "^16.18.115",
-		"@types/vscode": "^1.94.0",
-		"@typescript-eslint/eslint-plugin": "^5.62.0",
-		"@typescript-eslint/parser": "^5.62.0",
-		"eslint": "^8.57.1",
-		"typescript": "^5.6.3"
-	}
+	"icon": "images/icon.png"
 }

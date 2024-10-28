@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import * as minimatch from "minimatch";
+import { Minimatch } from "minimatch";
 
 // Interfaz para representar un item en la estructura
 interface TreeItem {
@@ -61,7 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
         pattern.includes("?") ||
         pattern.includes("[")
       ) {
-        return minimatch(name, pattern);
+        const mm = new Minimatch(pattern);
+        return mm.match(name);
       }
       return name === pattern;
     });
