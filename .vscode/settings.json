@@ -1,3 +1,15 @@
 {
-  "cSpell.words": ["faststruct", "recursivamente", "vscodeignore"]
+  "faststruct.exclude": {
+    "folders": [
+      "node_modules",
+      ".git",
+      "dist",
+      "build",
+      ".tmp",
+      "out",
+      ".astro",
+      ".unlighthouse"
+    ],
+    "files": ["*.log", "*.lock", "package-lock.json"]
+  }
 }

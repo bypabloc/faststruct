@@ -11,11 +11,20 @@ interface TreeItem {
   path?: string;
 }
 
-// Interfaz para la configuración
+// Enhanced interface for exclusion configuration
+interface ExclusionConfig {
+  patterns: string[];      // Basic glob patterns (*.log, etc.)
+  specificFiles: string[]; // Specific file paths (db/data.ts)
+  specificFolders: string[]; // Specific folder paths (src/utils/)
+  regexPatterns: string[]; // Regex patterns (src/**/*.md)
+}
+
+// Enhanced interface for the configuration
 interface FastStructConfig {
   exclude: {
     folders: string[];
     files: string[];
+    advanced: ExclusionConfig;
   };
 }
 
@@ -26,12 +35,12 @@ function log(message: string) {
   }
 }
 
-log("Extension is now active!");
+log("Enhanced Extension is now active!");
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "faststruct" is now active!');
 
-  // Función para obtener la configuración
+  // Enhanced function to get configuration
   function getConfiguration(
     workspaceFolder?: vscode.WorkspaceFolder
   ): FastStructConfig {
@@ -39,33 +48,155 @@ export function activate(context: vscode.ExtensionContext) {
       "faststruct",
       workspaceFolder?.uri
     );
+
     return {
-      exclude: config.get<FastStructConfig["exclude"]>("exclude", {
-        folders: ["node_modules", ".git", "dist", "build"],
-        files: ["*.log", "*.lock", "package-lock.json"],
-      }),
+      exclude: {
+        folders: config.get<string[]>("exclude.folders", [
+          "node_modules",
+          ".git",
+          "dist",
+          "build",
+        ]),
+        files: config.get<string[]>("exclude.files", [
+          "*.log",
+          "*.lock",
+          "package-lock.json",
+        ]),
+        advanced: {
+          patterns: config.get<string[]>("exclude.advanced.patterns", []),
+          specificFiles: config.get<string[]>(
+            "exclude.advanced.specificFiles",
+            []
+          ),
+          specificFolders: config.get<string[]>(
+            "exclude.advanced.specificFolders",
+            []
+          ),
+          regexPatterns: config.get<string[]>(
+            "exclude.advanced.regexPatterns",
+            []
+          ),
+        },
+      },
     };
+  }
+
+  // Enhanced function to check if a path matches regex patterns
+  function matchesRegexPatterns(itemPath: string, patterns: string[]): boolean {
+    return patterns.some((pattern) => {
+      try {
+        const regex = new RegExp(pattern);
+        return regex.test(itemPath);
+      } catch (e) {
+        log(`Invalid regex pattern: ${pattern}`);
+        return false;
+      }
+    });
+  }
+
+  // Enhanced function to check if a path matches specific paths
+  function matchesSpecificPath(
+    itemPath: string,
+    specificPaths: string[],
+    basePath: string
+  ): boolean {
+    // Normalize all paths and make them relative to basePath
+    const normalizedItemPath = path
+      .normalize(path.relative(basePath, itemPath))
+      .replace(/\\/g, "/");
+
+    return specificPaths.some((specificPath) => {
+      // Normalize the specific path
+      const normalizedSpecificPath = path
+        .normalize(specificPath)
+        .replace(/\\/g, "/");
+
+      // Check for exact match or if the normalized item path starts with the specific path
+      return (
+        normalizedItemPath === normalizedSpecificPath ||
+        normalizedItemPath.startsWith(normalizedSpecificPath + "/")
+      );
+    });
   }
 
   // Función para verificar si un item debe ser excluido
   function shouldExclude(
+    itemPath: string,
     name: string,
     type: "file" | "directory",
-    config: FastStructConfig
+    config: FastStructConfig,
+    basePath: string
   ): boolean {
+    // Get relative path for matching
+    const relativePath = path.relative(basePath, itemPath).replace(/\\/g, "/");
+
+    log(`Checking exclusion for: ${relativePath}`);
+
+    // Check basic patterns first
     const patterns =
       type === "directory" ? config.exclude.folders : config.exclude.files;
-    return patterns.some((pattern) => {
+    const basicPatternMatch = patterns.some((pattern) => {
       if (
         pattern.includes("*") ||
         pattern.includes("?") ||
         pattern.includes("[")
       ) {
         const mm = new Minimatch(pattern);
-        return mm.match(name);
+        const matches = mm.match(name);
+        if (matches) log(`Excluded by basic pattern: ${pattern}`);
+        return matches;
       }
-      return name === pattern;
+      const matches = name === pattern;
+      if (matches) log(`Excluded by exact name match: ${pattern}`);
+      return matches;
     });
+
+    if (basicPatternMatch) return true;
+
+    // Check advanced exclusions
+    const { advanced } = config.exclude;
+
+    // Check specific files
+    if (type === "file") {
+      const fileMatch = matchesSpecificPath(
+        itemPath,
+        advanced.specificFiles,
+        basePath
+      );
+      if (fileMatch) {
+        log(`Excluded by specific file match: ${relativePath}`);
+        return true;
+      }
+    }
+
+    // Check specific folders
+    if (type === "directory") {
+      const folderMatch = matchesSpecificPath(
+        itemPath,
+        advanced.specificFolders,
+        basePath
+      );
+      if (folderMatch) {
+        log(`Excluded by specific folder match: ${relativePath}`);
+        return true;
+      }
+    }
+
+    // Check regex patterns
+    if (matchesRegexPatterns(relativePath, advanced.regexPatterns)) {
+      log(`Excluded by regex pattern: ${relativePath}`);
+      return true;
+    }
+
+    // Check advanced patterns using minimatch
+    const advancedPatternMatch = advanced.patterns.some((pattern) => {
+      const mm = new Minimatch(pattern);
+      const matches = mm.match(relativePath);
+      if (matches) log(`Excluded by advanced pattern: ${pattern}`);
+      return matches;
+    });
+
+    return advancedPatternMatch;
   }
 
   // Lista de extensiones conocidas de archivos binarios
@@ -104,32 +235,34 @@ export function activate(context: vscode.ExtensionContext) {
     return BINARY_EXTENSIONS.has(ext);
   }
 
-  // Función para leer la estructura de directorios recursivamente
   function readDirectoryStructure(
     dirPath: string,
-    config: FastStructConfig
+    config: FastStructConfig,
+    basePath: string = dirPath
   ): TreeItem[] {
     const items = fs.readdirSync(dirPath, { withFileTypes: true });
     const structure: TreeItem[] = [];
 
     for (const item of items) {
+      const fullPath = path.join(dirPath, item.name);
+
       if (
         shouldExclude(
+          fullPath,
           item.name,
           item.isDirectory() ? "directory" : "file",
-          config
+          config,
+          basePath
         )
       ) {
         continue;
       }
 
-      const fullPath = path.join(dirPath, item.name);
-
       if (item.isDirectory()) {
         structure.push({
           name: item.name,
           type: "directory",
-          children: readDirectoryStructure(fullPath, config),
+          children: readDirectoryStructure(fullPath, config, basePath),
           path: fullPath,
         });
       } else {

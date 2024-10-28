@@ -34,31 +34,119 @@ function log(message) {
         console.log(`FastStruct: ${message}`);
     }
 }
-log("Extension is now active!");
+log("Enhanced Extension is now active!");
 function activate(context) {
     console.log('Congratulations, your extension "faststruct" is now active!');
-    // Función para obtener la configuración
+    // Enhanced function to get configuration
     function getConfiguration(workspaceFolder) {
         const config = vscode.workspace.getConfiguration("faststruct", workspaceFolder?.uri);
         return {
-            exclude: config.get("exclude", {
-                folders: ["node_modules", ".git", "dist", "build"],
-                files: ["*.log", "*.lock", "package-lock.json"],
-            }),
+            exclude: {
+                folders: config.get("exclude.folders", [
+                    "node_modules",
+                    ".git",
+                    "dist",
+                    "build",
+                ]),
+                files: config.get("exclude.files", [
+                    "*.log",
+                    "*.lock",
+                    "package-lock.json",
+                ]),
+                advanced: {
+                    patterns: config.get("exclude.advanced.patterns", []),
+                    specificFiles: config.get("exclude.advanced.specificFiles", []),
+                    specificFolders: config.get("exclude.advanced.specificFolders", []),
+                    regexPatterns: config.get("exclude.advanced.regexPatterns", []),
+                },
+            },
         };
     }
-    // Función para verificar si un item debe ser excluido
-    function shouldExclude(name, type, config) {
-        const patterns = type === "directory" ? config.exclude.folders : config.exclude.files;
+    // Enhanced function to check if a path matches regex patterns
+    function matchesRegexPatterns(itemPath, patterns) {
         return patterns.some((pattern) => {
+            try {
+                const regex = new RegExp(pattern);
+                return regex.test(itemPath);
+            }
+            catch (e) {
+                log(`Invalid regex pattern: ${pattern}`);
+                return false;
+            }
+        });
+    }
+    // Enhanced function to check if a path matches specific paths
+    function matchesSpecificPath(itemPath, specificPaths, basePath) {
+        // Normalize all paths and make them relative to basePath
+        const normalizedItemPath = path
+            .normalize(path.relative(basePath, itemPath))
+            .replace(/\\/g, "/");
+        return specificPaths.some((specificPath) => {
+            // Normalize the specific path
+            const normalizedSpecificPath = path
+                .normalize(specificPath)
+                .replace(/\\/g, "/");
+            // Check for exact match or if the normalized item path starts with the specific path
+            return (normalizedItemPath === normalizedSpecificPath ||
+                normalizedItemPath.startsWith(normalizedSpecificPath + "/"));
+        });
+    }
+    // Función para verificar si un item debe ser excluido
+    function shouldExclude(itemPath, name, type, config, basePath) {
+        // Get relative path for matching
+        const relativePath = path.relative(basePath, itemPath).replace(/\\/g, "/");
+        log(`Checking exclusion for: ${relativePath}`);
+        // Check basic patterns first
+        const patterns = type === "directory" ? config.exclude.folders : config.exclude.files;
+        const basicPatternMatch = patterns.some((pattern) => {
             if (pattern.includes("*") ||
                 pattern.includes("?") ||
                 pattern.includes("[")) {
                 const mm = new minimatch_1.Minimatch(pattern);
-                return mm.match(name);
+                const matches = mm.match(name);
+                if (matches)
+                    log(`Excluded by basic pattern: ${pattern}`);
+                return matches;
             }
-            return name === pattern;
+            const matches = name === pattern;
+            if (matches)
+                log(`Excluded by exact name match: ${pattern}`);
+            return matches;
         });
+        if (basicPatternMatch)
+            return true;
+        // Check advanced exclusions
+        const { advanced } = config.exclude;
+        // Check specific files
+        if (type === "file") {
+            const fileMatch = matchesSpecificPath(itemPath, advanced.specificFiles, basePath);
+            if (fileMatch) {
+                log(`Excluded by specific file match: ${relativePath}`);
+                return true;
+            }
+        }
+        // Check specific folders
+        if (type === "directory") {
+            const folderMatch = matchesSpecificPath(itemPath, advanced.specificFolders, basePath);
+            if (folderMatch) {
+                log(`Excluded by specific folder match: ${relativePath}`);
+                return true;
+            }
+        }
+        // Check regex patterns
+        if (matchesRegexPatterns(relativePath, advanced.regexPatterns)) {
+            log(`Excluded by regex pattern: ${relativePath}`);
+            return true;
+        }
+        // Check advanced patterns using minimatch
+        const advancedPatternMatch = advanced.patterns.some((pattern) => {
+            const mm = new minimatch_1.Minimatch(pattern);
+            const matches = mm.match(relativePath);
+            if (matches)
+                log(`Excluded by advanced pattern: ${pattern}`);
+            return matches;
+        });
+        return advancedPatternMatch;
     }
     // Lista de extensiones conocidas de archivos binarios
     const BINARY_EXTENSIONS = new Set([
@@ -94,20 +182,19 @@ function activate(context) {
         const ext = path.extname(filePath).toLowerCase();
         return BINARY_EXTENSIONS.has(ext);
     }
-    // Función para leer la estructura de directorios recursivamente
-    function readDirectoryStructure(dirPath, config) {
+    function readDirectoryStructure(dirPath, config, basePath = dirPath) {
         const items = fs.readdirSync(dirPath, { withFileTypes: true });
         const structure = [];
         for (const item of items) {
-            if (shouldExclude(item.name, item.isDirectory() ? "directory" : "file", config)) {
+            const fullPath = path.join(dirPath, item.name);
+            if (shouldExclude(fullPath, item.name, item.isDirectory() ? "directory" : "file", config, basePath)) {
                 continue;
             }
-            const fullPath = path.join(dirPath, item.name);
             if (item.isDirectory()) {
                 structure.push({
                     name: item.name,
                     type: "directory",
-                    children: readDirectoryStructure(fullPath, config),
+                    children: readDirectoryStructure(fullPath, config, basePath),
                     path: fullPath,
                 });
             }
