@@ -19,6 +19,15 @@ interface FastStructConfig {
   };
 }
 
+function log(message: string) {
+  const config = vscode.workspace.getConfiguration("faststruct");
+  if (config.get("debug")) {
+    console.log(`FastStruct: ${message}`);
+  }
+}
+
+log("Extension is now active!");
+
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "faststruct" is now active!');
 

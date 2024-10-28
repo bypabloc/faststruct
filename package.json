@@ -1,8 +1,8 @@
 {
 	"name": "faststruct",
 	"displayName": "FastStruct",
-	"description": "VSCode extension to quickly create project structures",
-	"version": "0.0.3",
+	"description": "VS Code extension to quickly visualize and document your project's file structure",
+	"version": "0.0.4",
 	"publisher": "the-full-stack",
 	"author": {
 		"name": "Pablo Contreras"
@@ -25,29 +25,33 @@
 	"main": "./out/main.js",
 	"contributes": {
 		"commands": [
-			{
-				"command": "faststruct.createStructure",
-				"title": "Create Project Structure",
-				"category": "FastStruct"
-			},
-			{
-				"command": "faststruct.createStructureContext",
-				"title": "Create Project Structure Here",
-				"category": "FastStruct"
-			}
+		  {
+			"command": "faststruct.createStructure",
+			"title": "FastStruct: Create Structure"
+		  },
+		  {
+			"command": "faststruct.createStructureContext",
+			"title": "FastStruct: Create Structure Here",
+			"category": "FastStruct"
+		  }
 		],
 		"menus": {
-			"explorer/context": [
-				{
-					"when": "explorerResourceIsFolder",
-					"command": "faststruct.createStructureContext",
-					"group": "2_workspace"
-				}
-			]
+		  "explorer/context": [
+			{
+			  "when": "explorerResourceIsFolder",
+			  "command": "faststruct.createStructureContext",
+			  "group": "navigation"
+			}
+		  ]
 		},
 		"configuration": {
 			"title": "FastStruct",
 			"properties": {
+				"faststruct.debug": {
+				  "type": "boolean",
+				  "default": false,
+				  "description": "Enable debug logging"
+				},
 				"faststruct.exclude": {
 					"type": "object",
 					"default": {
@@ -91,6 +95,9 @@
 		"lint": "eslint . --ext .ts,.tsx",
 		"npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
 		"npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
+	},
+	"dependencies": {
+		"minimatch": "^3.1.2"
 	},
 	"devDependencies": {
 		"@types/minimatch": "^5.1.2",
