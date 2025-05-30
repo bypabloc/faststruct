@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from "fs";
 import { Logger } from './logger';
 
 /**
@@ -17,79 +18,95 @@ export class ConfigWebviewProvider {
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
-    Logger.info('ConfigWebviewProvider inicializado');
+    Logger.info("ConfigWebviewProvider inicializado");
   }
 
   /**
    * Muestra la interfaz de configuración en un panel webview.
-   * 
+   *
    * @author Pablo Contreras
    * @created 2025/01/30
    */
   public show() {
-    Logger.functionStart('ConfigWebviewProvider.show');
-    
+    Logger.functionStart("ConfigWebviewProvider.show");
+
     // Si ya existe un panel, lo enfocamos
     if (this.panel) {
-      Logger.info('Panel existente encontrado, enfocando');
+      Logger.info("Panel existente encontrado, enfocando");
       this.panel.reveal();
-      Logger.functionEnd('ConfigWebviewProvider.show', 'Panel enfocado');
+      Logger.functionEnd("ConfigWebviewProvider.show", "Panel enfocado");
       return;
     }
 
-    Logger.info('Creando nuevo panel webview');
-    
+    // Verificar si existe configuración en el workspace
+    if (
+      vscode.workspace.workspaceFolders &&
+      vscode.workspace.workspaceFolders.length > 0
+    ) {
+      const configuration = vscode.workspace.getConfiguration("faststruct");
+      const inspect = configuration.inspect("config");
+
+      if (!inspect?.workspaceValue) {
+        vscode.window.showInformationMessage(
+          "No se encontró configuración de FastStruct en este proyecto. Puedes crear una nueva configuración y guardarla.",
+          "Entendido"
+        );
+      }
+    }
+
+    Logger.info("Creando nuevo panel webview");
+
     // Crear un nuevo panel
     this.panel = vscode.window.createWebviewPanel(
-      'faststructConfig',
-      'FastStruct Configuration',
+      "faststructConfig",
+      "FastStruct Configuration",
       vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(this.context.extensionUri, 'media')
-        ]
+          vscode.Uri.joinPath(this.context.extensionUri, "media"),
+        ],
       }
     );
 
-    Logger.info('Panel creado, estableciendo contenido HTML');
+    Logger.info("Panel creado, estableciendo contenido HTML");
 
     // Establecer el contenido HTML
     this.panel.webview.html = this.getWebviewContent();
 
-    Logger.info('HTML establecido, configurando manejadores de mensajes');
+    Logger.info("HTML establecido, configurando manejadores de mensajes");
 
     // Manejar mensajes desde la webview
     this.panel.webview.onDidReceiveMessage(
-      async message => {
-        Logger.info('Mensaje recibido de webview', message);
-        
+      async (message) => {
+        Logger.info("Mensaje recibido de webview", message);
+
         switch (message.command) {
-          case 'saveConfig':
-            Logger.info('Comando saveConfig recibido');
+          case "saveConfig":
+            Logger.info("Comando saveConfig recibido");
             await this.saveConfiguration(message.config);
             break;
-          case 'loadConfig':
-            Logger.info('Comando loadConfig recibido');
+          case "loadConfig":
+            Logger.info("Comando loadConfig recibido");
             this.loadConfiguration();
             break;
-          case 'resetConfig':
-            Logger.info('Comando resetConfig recibido');
+          case "resetConfig":
+            Logger.info("Comando resetConfig recibido");
             await this.resetConfiguration();
             break;
-          case 'log':
+          case "log":
             // Mensaje de log desde la webview
-            if (message.level === 'error') {
+            if (message.level === "error") {
               Logger.error(`[Webview] ${message.message}`, message.data);
-            } else if (message.level === 'warn') {
+            } else if (message.level === "warn") {
               Logger.warn(`[Webview] ${message.message}`, message.data);
             } else {
               Logger.info(`[Webview] ${message.message}`, message.data);
             }
             break;
           default:
-            Logger.warn('Comando desconocido recibido', message);
+            Logger.warn("Comando desconocido recibido", message);
         }
       },
       undefined,
@@ -99,184 +116,281 @@ export class ConfigWebviewProvider {
     // Limpiar cuando se cierre
     this.panel.onDidDispose(
       () => {
-        Logger.info('Panel cerrado, limpiando recursos');
+        Logger.info("Panel cerrado, limpiando recursos");
         this.panel = undefined;
       },
       undefined,
       this.context.subscriptions
     );
 
-    Logger.info('Cargando configuración inicial');
+    Logger.info("Cargando configuración inicial");
     // Cargar configuración inicial
     this.loadConfiguration();
-    
-    Logger.functionEnd('ConfigWebviewProvider.show', 'Panel mostrado');
+
+    Logger.functionEnd("ConfigWebviewProvider.show", "Panel mostrado");
   }
 
-/**
- * Guarda la configuración en los settings de VS Code.
- * 
- * @param config - Configuración a guardar
- * @author Pablo Contreras
- * @created 2025/01/30
- */
-private async saveConfiguration(config: any) {
-  Logger.functionStart('saveConfiguration', config);
-  
-  const configuration = vscode.workspace.getConfiguration('faststruct');
-  
-  try {
-    Logger.info('Actualizando configuración en VS Code');
-    
-    // Preguntar al usuario dónde guardar la configuración
-    const saveLocation = await vscode.window.showQuickPick(
-      [
-        { label: 'Workspace', description: 'Guardar en .vscode/settings.json (solo este proyecto)', value: vscode.ConfigurationTarget.Workspace },
-        { label: 'Usuario', description: 'Guardar globalmente (todos los proyectos)', value: vscode.ConfigurationTarget.Global }
-      ],
-      { placeHolder: '¿Dónde deseas guardar la configuración?' }
-    );
-    
-    if (!saveLocation) {
-      // El usuario canceló
-      Logger.info('Guardado cancelado por el usuario');
-      return;
+  /**
+   * Guarda la configuración en los settings de VS Code.
+   *
+   * @param config - Configuración a guardar
+   * @author Pablo Contreras
+   * @created 2025/01/30
+   */
+  private async saveConfiguration(config: any) {
+    Logger.functionStart("saveConfiguration", config);
+
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+
+    try {
+      Logger.info("Actualizando configuración en VS Code");
+
+      // Verificar si hay un workspace abierto
+      if (
+        !vscode.workspace.workspaceFolders ||
+        vscode.workspace.workspaceFolders.length === 0
+      ) {
+        const answer = await vscode.window.showWarningMessage(
+          "No hay un workspace abierto. ¿Deseas guardar la configuración globalmente?",
+          "Sí",
+          "No"
+        );
+
+        if (answer !== "Sí") {
+          Logger.info("Guardado cancelado por el usuario");
+          return;
+        }
+
+        // Guardar globalmente si no hay workspace
+        await configuration.update(
+          "config",
+          config,
+          vscode.ConfigurationTarget.Global
+        );
+        vscode.window.showInformationMessage(
+          "Configuración guardada globalmente (no hay workspace abierto)"
+        );
+      } else {
+        // Verificar si ya existe configuración en el workspace
+        const inspect = configuration.inspect("config");
+        const hasWorkspaceConfig = inspect?.workspaceValue !== undefined;
+
+        if (!hasWorkspaceConfig) {
+          // No existe configuración en el workspace, preguntar si crear
+          const answer = await vscode.window.showInformationMessage(
+            "No se encontró configuración de FastStruct en este proyecto. ¿Deseas crear una configuración local?",
+            "Sí, crear configuración",
+            "Cancelar"
+          );
+
+          if (answer !== "Sí, crear configuración") {
+            Logger.info("Creación de configuración cancelada por el usuario");
+            return;
+          }
+        }
+
+        // Crear el directorio .vscode si no existe
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const vscodePath = path.join(workspaceFolder.uri.fsPath, ".vscode");
+
+        if (!fs.existsSync(vscodePath)) {
+          Logger.info("Creando directorio .vscode");
+          fs.mkdirSync(vscodePath);
+        }
+
+        // Guardar en el workspace
+        await configuration.update(
+          "config",
+          config,
+          vscode.ConfigurationTarget.Workspace
+        );
+
+        vscode.window.showInformationMessage(
+          `Configuración guardada en ${path.join(".vscode", "settings.json")}`
+        );
+      }
+
+      Logger.info("Configuración guardada exitosamente");
+
+      // Notificar a la webview
+      this.panel?.webview.postMessage({
+        command: "configSaved",
+        success: true,
+      });
+
+      Logger.functionEnd("saveConfiguration", "Éxito");
+    } catch (error) {
+      Logger.error("Error al guardar la configuración", error);
+      vscode.window.showErrorMessage(
+        `Error al guardar la configuración: ${error}`
+      );
+
+      this.panel?.webview.postMessage({
+        command: "configSaved",
+        success: false,
+        error: error,
+      });
+
+      Logger.functionEnd("saveConfiguration", "Error");
     }
-    
-    // Guardar todo el objeto de configuración de una vez
-    await configuration.update('config', config, saveLocation.value);
-    
-    Logger.info(`Configuración guardada exitosamente en ${saveLocation.label}`);
-    
-    // Mostrar mensaje de éxito con la ubicación
-    vscode.window.showInformationMessage(`Configuración guardada exitosamente en ${saveLocation.label}`);
-    
-    // Notificar a la webview
-    this.panel?.webview.postMessage({
-      command: 'configSaved',
-      success: true,
-      location: saveLocation.label
-    });
-    
-    Logger.functionEnd('saveConfiguration', 'Éxito');
-  } catch (error) {
-    Logger.error('Error al guardar la configuración', error);
-    vscode.window.showErrorMessage(`Error al guardar la configuración: ${error}`);
-    
-    this.panel?.webview.postMessage({
-      command: 'configSaved',
-      success: false,
-      error: error
-    });
-    
-    Logger.functionEnd('saveConfiguration', 'Error');
   }
-}
 
-/**
- * Verifica y muestra información sobre la ubicación de la configuración actual.
- * 
- * @author Pablo Contreras
- * @created 2025/01/30
- */
-private checkConfigurationLocation() {
-  const configuration = vscode.workspace.getConfiguration('faststruct');
-  const inspect = configuration.inspect('config');
-  
-  Logger.info('Inspección de configuración', inspect);
-  
-  let message = 'Configuración FastStruct:\n\n';
-  
-  if (inspect?.globalValue) {
-    message += '✓ Configuración Global (Usuario) encontrada\n';
+  /**
+   * Verifica si existe configuración en el workspace actual.
+   *
+   * @returns true si existe configuración en el workspace
+   * @author Pablo Contreras
+   * @created 2025/01/30
+   */
+  private hasWorkspaceConfiguration(): boolean {
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+    const inspect = configuration.inspect("config");
+    return inspect?.workspaceValue !== undefined;
   }
-  
-  if (inspect?.workspaceValue) {
-    message += '✓ Configuración de Workspace encontrada\n';
+
+  /**
+   * Verifica y muestra información sobre la ubicación de la configuración actual.
+   *
+   * @author Pablo Contreras
+   * @created 2025/01/30
+   */
+  private checkConfigurationLocation() {
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+    const inspect = configuration.inspect("config");
+
+    Logger.info("Inspección de configuración", inspect);
+
+    let message = "Configuración FastStruct:\n\n";
+
+    if (inspect?.globalValue) {
+      message += "✓ Configuración Global (Usuario) encontrada\n";
+    }
+
+    if (inspect?.workspaceValue) {
+      message += "✓ Configuración de Workspace encontrada\n";
+    }
+
+    if (inspect?.workspaceFolderValue) {
+      message += "✓ Configuración de Carpeta de Workspace encontrada\n";
+    }
+
+    if (inspect?.defaultValue) {
+      message += "✓ Usando valores por defecto\n";
+    }
+
+    // Mostrar qué configuración tiene prioridad
+    if (inspect?.workspaceFolderValue) {
+      message += "\n📍 Usando: Configuración de Carpeta de Workspace";
+    } else if (inspect?.workspaceValue) {
+      message +=
+        "\n📍 Usando: Configuración de Workspace (.vscode/settings.json)";
+    } else if (inspect?.globalValue) {
+      message += "\n📍 Usando: Configuración Global de Usuario";
+    } else {
+      message += "\n📍 Usando: Valores por defecto";
+    }
+
+    vscode.window.showInformationMessage(message, { modal: true });
   }
-  
-  if (inspect?.workspaceFolderValue) {
-    message += '✓ Configuración de Carpeta de Workspace encontrada\n';
-  }
-  
-  if (inspect?.defaultValue) {
-    message += '✓ Usando valores por defecto\n';
-  }
-  
-  // Mostrar qué configuración tiene prioridad
-  if (inspect?.workspaceFolderValue) {
-    message += '\n📍 Usando: Configuración de Carpeta de Workspace';
-  } else if (inspect?.workspaceValue) {
-    message += '\n📍 Usando: Configuración de Workspace (.vscode/settings.json)';
-  } else if (inspect?.globalValue) {
-    message += '\n📍 Usando: Configuración Global de Usuario';
-  } else {
-    message += '\n📍 Usando: Valores por defecto';
-  }
-  
-  vscode.window.showInformationMessage(message, { modal: true });
-}
 
   /**
    * Carga la configuración actual y la envía a la webview.
-   * 
+   *
    * @author Pablo Contreras
    * @created 2025/01/30
    */
   private loadConfiguration() {
-    Logger.functionStart('loadConfiguration');
-    
-    const configuration = vscode.workspace.getConfiguration('faststruct');
-    const config = configuration.get('config', this.getDefaultConfig());
-    
-    Logger.info('Configuración cargada', config);
-    
+    Logger.functionStart("loadConfiguration");
+
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+    const inspect = configuration.inspect("config");
+
+    // Priorizar configuración del workspace si existe
+    let config;
+    let source = "default";
+
+    if (inspect?.workspaceValue) {
+      config = inspect.workspaceValue;
+      source = "workspace";
+      Logger.info("Usando configuración del workspace");
+    } else if (inspect?.globalValue) {
+      config = inspect.globalValue;
+      source = "global";
+      Logger.info("Usando configuración global");
+    } else {
+      config = this.getDefaultConfig();
+      source = "default";
+      Logger.info("Usando configuración por defecto");
+    }
+
+    Logger.info("Configuración cargada", config);
+
     const message = {
-      command: 'loadConfig',
-      config: config
+      command: "loadConfig",
+      config: config,
+      source: source,
     };
-    
-    Logger.info('Enviando configuración a webview', message);
+
+    Logger.info("Enviando configuración a webview", message);
     this.panel?.webview.postMessage(message);
-    
-    Logger.functionEnd('loadConfiguration');
+
+    Logger.functionEnd("loadConfiguration");
   }
 
   /**
    * Restablece la configuración a los valores por defecto.
-   * 
+   *
    * @author Pablo Contreras
    * @created 2025/01/30
    */
   private async resetConfiguration() {
-    Logger.functionStart('resetConfiguration');
-    
+    Logger.functionStart("resetConfiguration");
+
     const answer = await vscode.window.showWarningMessage(
-      '¿Estás seguro de que quieres restablecer toda la configuración a los valores por defecto?',
-      'Sí',
-      'No'
+      "¿Estás seguro de que quieres restablecer toda la configuración a los valores por defecto?",
+      "Sí",
+      "No"
     );
 
-    Logger.info('Respuesta del usuario', answer);
+    Logger.info("Respuesta del usuario", answer);
 
-    if (answer === 'Sí') {
+    if (answer === "Sí") {
       const defaultConfig = this.getDefaultConfig();
-      Logger.info('Restableciendo a configuración por defecto', defaultConfig);
-      
+      Logger.info("Restableciendo a configuración por defecto", defaultConfig);
+
+      // Si existe configuración en el workspace, preguntar si mantenerla
+      if (this.hasWorkspaceConfiguration()) {
+        const keepWorkspace = await vscode.window.showQuickPick(
+          [
+            { label: "Restablecer configuración del proyecto", value: false },
+            {
+              label: "Solo restablecer valores (mantener en proyecto)",
+              value: true,
+            },
+          ],
+          { placeHolder: "¿Qué deseas hacer?" }
+        );
+
+        if (keepWorkspace === undefined) {
+          Logger.info("Restablecimiento cancelado");
+          return;
+        }
+      }
+
       await this.saveConfiguration(defaultConfig);
-      
+
       this.panel?.webview.postMessage({
-        command: 'loadConfig',
-        config: defaultConfig
+        command: "loadConfig",
+        config: defaultConfig,
       });
     }
-    
-    Logger.functionEnd('resetConfiguration');
+
+    Logger.functionEnd("resetConfiguration");
   }
 
   /**
    * Obtiene la configuración por defecto.
-   * 
+   *
    * @returns Objeto con la configuración por defecto
    * @author Pablo Contreras
    * @created 2025/01/30
@@ -293,59 +407,56 @@ private checkConfigurationLocation() {
           ".tmp",
           "out",
           ".astro",
-          ".unlighthouse"
+          ".unlighthouse",
         ],
         files: [
           "*.log",
           "*.lock",
           "package-lock.json",
           "pnpm-lock.yaml",
-          "yarn.lock"
+          "yarn.lock",
         ],
         advanced: {
           patterns: ["**/*.min.js", "**/*.generated.*"],
           specificFiles: [],
           specificFolders: [],
-          regexPatterns: []
-        }
+          regexPatterns: [],
+        },
       },
       excludeContent: {
         files: ["*.config.js", "db/data.ts"],
         folders: ["src/config", "tests"],
-        patterns: [
-          "*.vsix",
-          "**/*.secret.*",
-          "**/.secrets**",
-          "**/*/.env**"
-        ]
-      }
+        patterns: ["*.vsix", "**/*.secret.*", "**/.secrets**", "**/*/.env**"],
+      },
     };
   }
 
   /**
    * Genera el contenido HTML para la webview.
-   * 
+   *
    * @returns HTML string
    * @author Pablo Contreras
    * @created 2025/01/30
    */
   private getWebviewContent(): string {
-    Logger.functionStart('getWebviewContent');
-    
+    Logger.functionStart("getWebviewContent");
+
     const styleUri = this.panel?.webview.asWebviewUri(
-      vscode.Uri.joinPath(this.context.extensionUri, 'media', 'configStyle.css')
+      vscode.Uri.joinPath(this.context.extensionUri, "media", "configStyle.css")
     );
 
     const nonce = this.getNonce();
-    
-    Logger.info('URIs generadas', { styleUri: styleUri?.toString(), nonce });
+
+    Logger.info("URIs generadas", { styleUri: styleUri?.toString(), nonce });
 
     const html = `<!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel?.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${
+          this.panel?.webview.cspSource
+        } 'unsafe-inline'; script-src 'nonce-${nonce}';">
         <link href="${styleUri}" rel="stylesheet">
         <title>FastStruct Configuration</title>
     </head>
@@ -354,6 +465,7 @@ private checkConfigurationLocation() {
             <header>
                 <h1>⚙️ FastStruct Configuration</h1>
                 <p class="subtitle">Personaliza cómo FastStruct genera la estructura de tu proyecto</p>
+                <div id="configSource" style="margin-top: 10px; font-size: 0.9em; color: var(--vscode-descriptionForeground);"></div>
             </header>
 
             <div class="config-sections">
@@ -502,14 +614,14 @@ private checkConfigurationLocation() {
         </script>
     </body>
     </html>`;
-    
-    Logger.functionEnd('getWebviewContent', 'HTML generado');
+
+    Logger.functionEnd("getWebviewContent", "HTML generado");
     return html;
   }
 
   /**
    * Genera el script JavaScript para la webview.
-   * 
+   *
    * @returns JavaScript como string
    * @author Pablo Contreras
    * @created 2025/01/30
@@ -542,10 +654,32 @@ private checkConfigurationLocation() {
                 currentConfig = message.config;
                 log('info', 'Configuración cargada', currentConfig);
                 updateUI();
+                
+                // Actualizar indicador de fuente de configuración
+                if (message.source) {
+                    const sourceEl = document.getElementById('configSource');
+                    if (sourceEl) {
+                        let sourceText = '';
+                        switch (message.source) {
+                            case 'workspace':
+                                sourceText = '📁 Configuración del proyecto (.vscode/settings.json)';
+                                break;
+                            case 'global':
+                                sourceText = '🌐 Configuración global del usuario';
+                                break;
+                            case 'default':
+                                sourceText = '📋 Configuración por defecto (no guardada)';
+                                break;
+                        }
+                        sourceEl.textContent = sourceText;
+                    }
+                }
                 break;
             case 'configSaved':
                 if (message.success) {
                     showNotification('Configuración guardada exitosamente', 'success');
+                    // Recargar para actualizar el indicador de fuente
+                    vscode.postMessage({ command: 'loadConfig' });
                 } else {
                     showNotification('Error al guardar la configuración', 'error');
                 }
@@ -898,14 +1032,15 @@ private checkConfigurationLocation() {
 
   /**
    * Genera un nonce para seguridad CSP.
-   * 
+   *
    * @returns String aleatorio para nonce
    * @author Pablo Contreras
    * @created 2025/01/30
    */
   private getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }

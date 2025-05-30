@@ -599,12 +599,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Registrar todos los comandos
   context.subscriptions.push(
     createStructureContextCommand,
     openSettingsCommand,
-    createStructureCommand
+    createStructureCommand,
+    checkConfigCommand
   );
-  context.subscriptions.push(checkConfigCommand);
 }
 
 export function deactivate() {}
