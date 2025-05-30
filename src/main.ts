@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { Minimatch } from "minimatch";
+import { ConfigWebviewProvider } from "./ConfigWebviewProvider";
+import { Logger } from "./logger";
 
 interface TreeItem {
   name: string;
@@ -69,12 +71,17 @@ Structure and content follows below:
 
 function log(message: string, config: FastStructConfig) {
   if (config.debug) {
-    console.log(`FastStruct: ${message}`);
+    Logger.debug(message);
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "faststruct" is now active!');
+  Logger.info("FastStruct extension activada");
+  Logger.show(); // Mostrar el canal de output para ver los logs
+
+  // Crear el proveedor de webview para la configuración
+  const configProvider = new ConfigWebviewProvider(context);
 
   function getConfiguration(
     workspaceFolder?: vscode.WorkspaceFolder
@@ -463,6 +470,7 @@ export function activate(context: vscode.ExtensionContext) {
     return result;
   }
 
+  // Comando para crear la estructura
   const createStructureContextCommand = vscode.commands.registerCommand(
     "faststruct.createStructureContext",
     async (uri: vscode.Uri) => {
@@ -520,5 +528,83 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(createStructureContextCommand);
+  // Comando para abrir la configuración
+  const openSettingsCommand = vscode.commands.registerCommand(
+    "faststruct.openSettings",
+    () => {
+      Logger.info("Comando openSettings ejecutado");
+      configProvider.show();
+    }
+  );
+
+  // Comando alternativo para crear estructura
+  const createStructureCommand = vscode.commands.registerCommand(
+    "faststruct.createStructure",
+    async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        vscode.commands.executeCommand(
+          "faststruct.createStructureContext",
+          workspaceFolders[0].uri
+        );
+      } else {
+        vscode.window.showErrorMessage("No workspace folder found.");
+      }
+    }
+  );
+
+  // Comando para verificar la ubicación de la configuración
+  const checkConfigCommand = vscode.commands.registerCommand(
+    "faststruct.checkConfig",
+    () => {
+      const configuration = vscode.workspace.getConfiguration("faststruct");
+      const inspect = configuration.inspect("config");
+
+      Logger.info("Inspección de configuración", inspect);
+
+      const items: vscode.QuickPickItem[] = [];
+
+      if (inspect?.globalValue) {
+        items.push({
+          label: "$(globe) Configuración Global",
+          description: "Guardada en la configuración de usuario",
+          detail:
+            JSON.stringify(inspect.globalValue, null, 2).substring(0, 100) +
+            "...",
+        });
+      }
+
+      if (inspect?.workspaceValue) {
+        items.push({
+          label: "$(folder) Configuración de Workspace",
+          description: "Guardada en .vscode/settings.json",
+          detail:
+            JSON.stringify(inspect.workspaceValue, null, 2).substring(0, 100) +
+            "...",
+        });
+      }
+
+      if (!inspect?.globalValue && !inspect?.workspaceValue) {
+        items.push({
+          label: "$(warning) Sin configuración personalizada",
+          description: "Usando valores por defecto",
+          detail: "No se ha guardado ninguna configuración todavía",
+        });
+      }
+
+      vscode.window.showQuickPick(items, {
+        placeHolder: "Ubicaciones de configuración de FastStruct",
+        canPickMany: false,
+      });
+    }
+  );
+
+  context.subscriptions.push(
+    createStructureContextCommand,
+    openSettingsCommand,
+    createStructureCommand
+  );
+  context.subscriptions.push(checkConfigCommand);
 }
+
+export function deactivate() {}

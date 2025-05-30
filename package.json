@@ -1,112 +1,226 @@
 {
-	"name": "faststruct",
-	"displayName": "FastStruct",
-	"description": "VS Code extension to quickly visualize and document your project's file structure",
-	"version": "0.0.11",
-	"publisher": "the-full-stack",
-	"author": {
-		"name": "Pablo Contreras"
-	},
-	"engines": {
-		"vscode": "^1.94.0"
-	},
-	"license": "GPL-3.0",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/bypabloc/faststruct"
-	},
-	"categories": [
-		"Other"
-	],
-	"activationEvents": [
-		"onCommand:faststruct.createStructure",
-		"onCommand:faststruct.createStructureContext"
-	],
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"lint": "eslint . --ext .ts,.tsx",
-		"npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
-		"npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
-	},
-	"dependencies": {
-		"minimatch": "^10.0.1"
-	},
-	"devDependencies": {
-		"@types/minimatch": "^5.1.2",
-		"@types/node": "^22.8.1",
-		"@types/vscode": "^1.94.0",
-		"@typescript-eslint/eslint-plugin": "^5.62.0",
-		"@typescript-eslint/parser": "^5.62.0",
-		"eslint": "^8.57.1",
-		"typescript": "^5.6.3"
-	},
-	"main": "./out/main.js",
-	"contributes": {
-		"commands": [
-		  {
-			"command": "faststruct.createStructure",
-			"title": "FastStruct: Create Structure"
-		  },
-		  {
-			"command": "faststruct.createStructureContext",
-			"title": "FastStruct: Create Structure Here",
-			"category": "FastStruct"
-		  }
-		],
-		"menus": {
-		  "explorer/context": [
-			{
-			  "when": "explorerResourceIsFolder",
-			  "command": "faststruct.createStructureContext",
-			  "group": "z_commands"
-			}
-		  ]
-		},
-		"configuration": {
-			"title": "FastStruct",
-			"properties": {
-				"faststruct.debug": {
-				  "type": "boolean",
-				  "default": false,
-				  "description": "Enable debug logging"
-				},
-				"faststruct.exclude": {
-					"type": "object",
-					"default": {
-						"folders": [
-							"node_modules",
-							".git",
-							"dist",
-							"build"
-						],
-						"files": [
-							"*.log",
-							"*.lock",
-							"package-lock.json"
-						]
-					},
-					"description": "Patterns to exclude from the structure tree",
-					"properties": {
-						"folders": {
-							"type": "array",
-							"items": {
-								"type": "string"
-							},
-							"description": "Folders to exclude"
-						},
-						"files": {
-							"type": "array",
-							"items": {
-								"type": "string"
-							},
-							"description": "File patterns to exclude"
-						}
-					}
-				}
-			}
-		}
-	},
-	"icon": "assets/images/icon.png"
+  "name": "faststruct",
+  "displayName": "FastStruct",
+  "description": "VS Code extension to quickly visualize and document your project's file structure",
+  "version": "0.0.11",
+  "publisher": "the-full-stack",
+  "author": {
+    "name": "Pablo Contreras"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint . --ext .ts,.tsx",
+    "npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
+    "npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
+  },
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bypabloc/faststruct"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:faststruct.createStructure",
+    "onCommand:faststruct.createStructureContext",
+    "onCommand:faststruct.openSettings"
+  ],
+  "main": "./out/main.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "faststruct.createStructure",
+        "title": "FastStruct: Create Structure"
+      },
+      {
+        "command": "faststruct.createStructureContext",
+        "title": "FastStruct: Create Structure Here",
+        "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.openSettings",
+        "title": "FastStruct: Open Settings",
+        "category": "FastStruct",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "faststruct.checkConfig",
+        "title": "FastStruct: Check Configuration Location",
+        "category": "FastStruct"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "explorerResourceIsFolder",
+          "command": "faststruct.createStructureContext",
+          "group": "z_commands"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "faststruct.openSettings"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "FastStruct",
+      "properties": {
+        "faststruct.config": {
+          "type": "object",
+          "description": "Configuración completa de FastStruct",
+          "default": {
+            "debug": false,
+            "exclude": {
+              "folders": [
+                "node_modules",
+                ".git",
+                "dist",
+                "build",
+                ".tmp",
+                "out",
+                ".astro",
+                ".unlighthouse"
+              ],
+              "files": [
+                "*.log",
+                "*.lock",
+                "package-lock.json",
+                "pnpm-lock.yaml",
+                "yarn.lock"
+              ],
+              "advanced": {
+                "patterns": [
+                  "**/*.min.js",
+                  "**/*.generated.*"
+                ],
+                "specificFiles": [],
+                "specificFolders": [],
+                "regexPatterns": []
+              }
+            },
+            "excludeContent": {
+              "files": [
+                "*.config.js",
+                "db/data.ts"
+              ],
+              "folders": [
+                "src/config",
+                "tests"
+              ],
+              "patterns": [
+                "*.vsix",
+                "**/*.secret.*",
+                "**/.secrets**",
+                "**/*/.env**"
+              ]
+            }
+          },
+          "properties": {
+            "debug": {
+              "type": "boolean",
+              "description": "Habilitar registro de depuración"
+            },
+            "exclude": {
+              "type": "object",
+              "properties": {
+                "folders": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Carpetas a excluir"
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Archivos a excluir"
+                },
+                "advanced": {
+                  "type": "object",
+                  "properties": {
+                    "patterns": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Patrones glob avanzados"
+                    },
+                    "specificFiles": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Archivos específicos"
+                    },
+                    "specificFolders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Carpetas específicas"
+                    },
+                    "regexPatterns": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Expresiones regulares"
+                    }
+                  }
+                }
+              }
+            },
+            "excludeContent": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Archivos cuyo contenido no se mostrará"
+                },
+                "folders": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Carpetas cuyo contenido no se mostrará"
+                },
+                "patterns": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Patrones de archivos cuyo contenido no se mostrará"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "minimatch": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^22.15.26",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.33.0",
+    "@typescript-eslint/parser": "^8.33.0",
+    "eslint": "^9.27.0",
+    "typescript": "^5.8.3"
+  },
+  "icon": "assets/images/icon.png"
 }

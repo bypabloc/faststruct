@@ -145,3 +145,5 @@ dist
 .output**.txt
 
 **.vsix
+
+out/
