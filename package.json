@@ -29,6 +29,8 @@
   "activationEvents": [
     "onCommand:faststruct.createStructure",
     "onCommand:faststruct.createStructureContext",
+    "onCommand:faststruct.createStructureOnly",
+    "onCommand:faststruct.createStructureChoose",
     "onCommand:faststruct.openSettings"
   ],
   "main": "./out/main.js",
@@ -36,12 +38,26 @@
     "commands": [
       {
         "command": "faststruct.createStructure",
-        "title": "Create Structure"
+        "title": "Create Structure",
+        "category": "FastStruct"
       },
       {
         "command": "faststruct.createStructureContext",
-        "title": "Crear estructura aquí",
-        "category": "FastStruct"
+        "title": "Crear estructura con contenido",
+        "category": "FastStruct",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "faststruct.createStructureOnly",
+        "title": "Crear solo estructura",
+        "category": "FastStruct",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "faststruct.createStructureChoose",
+        "title": "Crear estructura...",
+        "category": "FastStruct",
+        "icon": "$(list-selection)"
       },
       {
         "command": "faststruct.openSettings",
@@ -52,6 +68,21 @@
       {
         "command": "faststruct.checkConfig",
         "title": "Check Configuration Location",
+        "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.exportConfig",
+        "title": "Export Configuration",
+        "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.importConfig",
+        "title": "Import Configuration",
+        "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.resetConfig",
+        "title": "Reset Configuration",
         "category": "FastStruct"
       },
       {
@@ -113,6 +144,11 @@
       {
         "command": "faststruct.createStructureWithPreview",
         "title": "Crear estructura con vista previa"
+      },
+      {
+        "command": "faststruct.healthCheck",
+        "title": "Health Check",
+        "category": "FastStruct"
       }
     ],
     "menus": {
@@ -124,12 +160,20 @@
       ],
       "faststruct.mainMenu": [
         {
-          "command": "faststruct.createStructureContext",
+          "command": "faststruct.createStructureChoose",
           "group": "1_actions@1"
         },
         {
-          "command": "faststruct.createStructureWithPreview",
+          "command": "faststruct.createStructureContext",
           "group": "1_actions@2"
+        },
+        {
+          "command": "faststruct.createStructureOnly",
+          "group": "1_actions@3"
+        },
+        {
+          "command": "faststruct.createStructureWithPreview",
+          "group": "1_actions@4"
         },
         {
           "submenu": "faststruct.fileMenu",
@@ -275,6 +319,12 @@
                 "**/.secrets**",
                 "**/*/.env**"
               ]
+            },
+            "output": {
+              "includeContent": true,
+              "includeEmptyFolders": true,
+              "includeFileSize": false,
+              "includeLastModified": false
             }
           },
           "properties": {
@@ -373,6 +423,32 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Mostrar notificaciones al agregar exclusiones"
+                }
+              }
+            },
+            "output": {
+              "type": "object",
+              "description": "Opciones de salida para la estructura generada",
+              "properties": {
+                "includeContent": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Incluir el contenido de los archivos en la salida"
+                },
+                "includeEmptyFolders": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Incluir carpetas vacías en la estructura"
+                },
+                "includeFileSize": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Mostrar el tamaño de cada archivo"
+                },
+                "includeLastModified": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Mostrar la fecha de última modificación"
                 }
               }
             }

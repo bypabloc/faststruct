@@ -1,47 +1,112 @@
 # FastStruct 📁
 
-A VS Code extension to quickly visualize and document your project's file structure. FastStruct helps you create clear, well-formatted documentation of your project's directory structure, including file contents when needed.
+Una extensión de VS Code para visualizar y documentar rápidamente la estructura de archivos de tu proyecto. FastStruct te ayuda a crear documentación clara y bien formateada de la estructura de directorios de tu proyecto, incluyendo el contenido de los archivos cuando lo necesites.
 
 ![FastStruct Demo](./assets/animated/demo.gif)
 
-## Features ✨
+## Características ✨
 
-- 📊 Generate a visual tree structure of your project
-- 📝 Include file contents in the documentation
-- 🎯 Configurable file and folder exclusions
-- 💡 Smart binary file detection
-- 🖱️ Right-click context menu integration
+- 📊 **Genera estructura visual en árbol** de tu proyecto
+- 📝 **Incluye contenido de archivos** en la documentación (opcional)
+- 🎯 **Exclusiones configurables** de archivos y carpetas
+- 💡 **Detección inteligente** de archivos binarios
+- 🖱️ **Integración con menú contextual** del explorador
+- 🎨 **Interfaz de configuración visual** moderna e intuitiva
+- 📈 **Estadísticas en tiempo real** sobre exclusiones
+- 🔍 **Prueba de patrones** para verificar exclusiones
+- 📥 **Importación desde .gitignore** para configuración rápida
 
-## Installation 💻
+## Instalación 💻
 
-You can install FastStruct directly from the VS Code Marketplace:
+Puedes instalar FastStruct directamente desde el VS Code Marketplace:
 
-1. Open VS Code
-2. Press `Ctrl+P` / `Cmd+P`
-3. Type `ext install faststruct`
+1. Abre VS Code
+2. Presiona `Ctrl+P` / `Cmd+P`
+3. Escribe `ext install faststruct`
 
-Or search for "FastStruct" in the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`).
+O busca "FastStruct" en la vista de Extensiones (`Ctrl+Shift+X` / `Cmd+Shift+X`).
 
-## Usage 🚀
+## Uso 🚀
 
-### Basic Usage
+### Uso Básico
 
-1. Right-click on any folder in the VS Code explorer
-2. Select "Create Project Structure Here"
-3. A new document will open showing the folder structure and contents
+FastStruct ofrece diferentes formas de generar la estructura de tu proyecto:
 
-### Command Palette
+#### 1. Menú Contextual (Recomendado)
 
-You can also use the command palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
+1. Haz clic derecho en cualquier carpeta del explorador de VS Code
+2. Selecciona **FastStruct** en el menú
+3. Elige una de las siguientes opciones:
+   - **Crear estructura...** - Te permite elegir qué tipo de estructura generar
+   - **Crear estructura con contenido** - Incluye el contenido de los archivos
+   - **Crear solo estructura** - Muestra solo la estructura de carpetas y archivos
+   - **Crear estructura con vista previa** - Muestra una vista previa antes de generar
 
-1. Type "FastStruct: Create Structure"
-2. Press Enter
+#### 2. Paleta de Comandos
 
-## Configuration Guide ⚙️
+También puedes usar la paleta de comandos (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
-### Basic Configuration Structure
+1. Escribe "FastStruct"
+2. Selecciona uno de los comandos disponibles
 
-FastStruct can be configured using the `faststruct.config` setting in your VS Code settings (`settings.json`):
+### Nueva Interfaz de Configuración 🎨
+
+FastStruct incluye una interfaz de configuración completamente renovada:
+
+1. Haz clic derecho en el explorador → FastStruct → Open Settings
+2. O usa la paleta de comandos: "FastStruct: Open Settings"
+
+#### Características de la Nueva Interfaz
+
+- **Vista General con Estadísticas**: Visualiza el impacto de tus exclusiones en tiempo real
+- **Navegación por Secciones**: Organización clara de las opciones
+- **Búsqueda en Listas**: Encuentra rápidamente elementos en listas largas
+- **Prueba de Patrones**: Verifica que tus patrones funcionen correctamente
+- **Importación desde .gitignore**: Configura exclusiones basadas en tu archivo .gitignore
+- **Plantillas Predefinidas**: Aplica configuraciones comunes para proyectos Node.js, Python, Java, .NET
+- **Herramientas de Mantenimiento**: Limpia duplicados y ordena patrones automáticamente
+
+## Tipos de Salida 📋
+
+### 1. Estructura con Contenido
+
+Genera la estructura completa incluyendo el contenido de los archivos:
+
+```
+└── 📁project
+    ├── 📁src
+    │   └── index.js
+    └── README.md
+
+Path: src/index.js
+Content:
+```javascript
+console.log('Hello World');
+```
+
+```
+
+### 2. Solo Estructura
+
+Genera únicamente la estructura de carpetas y archivos, sin contenido:
+
+```
+
+└── 📁project
+    ├── 📁src
+    │   ├── index.js
+    │   └── utils.js
+    ├── 📁tests
+    │   └── test.js
+    └── README.md
+
+```
+
+## Guía de Configuración ⚙️
+
+### Estructura de Configuración
+
+FastStruct se puede configurar usando `faststruct.config` en los ajustes de VS Code:
 
 ```json
 {
@@ -61,57 +126,69 @@ FastStruct can be configured using the `faststruct.config` setting in your VS Co
       "files": [...],
       "folders": [...],
       "patterns": [...]
+    },
+    "output": {
+      "includeContent": true,
+      "includeEmptyFolders": true,
+      "includeFileSize": false,
+      "includeLastModified": false
     }
   }
 }
 ```
 
-### Configuration Options
+### Opciones de Configuración
 
-#### 1. Debug Mode
+#### 1. Opciones de Salida (Nuevo)
+
+```json
+"output": {
+  "includeContent": true,      // Incluir contenido de archivos
+  "includeEmptyFolders": true, // Mostrar carpetas vacías
+  "includeFileSize": false,    // Mostrar tamaño de archivos
+  "includeLastModified": false // Mostrar fecha de modificación
+}
+```
+
+#### 2. Modo Debug
+
 ```json
 "debug": true
 ```
-Enables detailed logging for troubleshooting (default: `false`)
 
-#### 2. Basic Exclusions
+Habilita el registro detallado para solución de problemas
 
-##### Folder Exclusions
+#### 3. Exclusiones Básicas
+
+##### Exclusiones de Carpetas
+
 ```json
 "exclude": {
   "folders": [
     "node_modules",
     ".git",
     "dist",
-    "build",
-    ".tmp",
-    "out",
-    ".astro",
-    ".unlighthouse"
+    "build"
   ]
 }
 ```
-- Excludes entire folders from the structure
-- Supports simple patterns and exact matches
 
-##### File Exclusions
+##### Exclusiones de Archivos
+
 ```json
 "exclude": {
   "files": [
     "*.log",
     "*.lock",
-    "package-lock.json",
-    "pnpm-lock.yaml",
-    "yarn.lock"
+    "package-lock.json"
   ]
 }
 ```
-- Excludes specific files from the structure
-- Supports wildcards and exact filenames
 
-#### 3. Advanced Exclusions
+#### 4. Exclusiones Avanzadas
 
-##### Pattern-based Exclusions
+##### Patrones Glob
+
 ```json
 "exclude": {
   "advanced": {
@@ -122,9 +199,9 @@ Enables detailed logging for troubleshooting (default: `false`)
   }
 }
 ```
-Uses glob patterns for more complex matching
 
-##### Specific File/Folder Exclusions
+##### Archivos/Carpetas Específicos
+
 ```json
 "exclude": {
   "advanced": {
@@ -132,15 +209,14 @@ Uses glob patterns for more complex matching
       "src/config/sensitive.json"
     ],
     "specificFolders": [
-      "src/utils/",
-      "tests/fixtures/"
+      "src/utils/"
     ]
   }
 }
 ```
-Excludes specific files/folders using relative paths
 
-##### Regex Patterns
+##### Expresiones Regulares
+
 ```json
 "exclude": {
   "advanced": {
@@ -151,130 +227,109 @@ Excludes specific files/folders using relative paths
   }
 }
 ```
-Uses regular expressions for complex pattern matching
 
-#### 4. Content Exclusions
+#### 5. Exclusiones de Contenido
 
-Hide file contents while keeping files in the structure:
+Oculta el contenido de archivos mientras los mantiene en la estructura:
 
 ```json
 "excludeContent": {
-  "files": [
-    "*.config.js",
-    "db/data.ts"
-  ],
-  "folders": [
-    "src/config",
-    "tests"
-  ],
-  "patterns": [
-    "*.vsix",
-    "**/*.secret.*",
-    "**/.secrets**",
-    "**/*/.env**"
-  ]
+  "files": ["*.config.js"],
+  "folders": ["src/config"],
+  "patterns": ["**/*.secret.*"]
 }
 ```
 
-### Example Full Configuration
+### Ejemplo de Configuración Completa
 
 ```json
 {
   "faststruct.config": {
-    "debug": true,
+    "debug": false,
     "exclude": {
-      "folders": [
-        "node_modules",
-        ".git",
-        "dist",
-        "build",
-        ".tmp",
-        "out"
-      ],
-      "files": [
-        "*.log",
-        "*.lock",
-        "package-lock.json"
-      ],
+      "folders": ["node_modules", ".git", "dist"],
+      "files": ["*.log", "*.lock"],
       "advanced": {
-        "patterns": ["**/*.min.js", "**/*.generated.*"],
-        "specificFiles": ["src/config/sensitive.json"],
-        "specificFolders": ["src/utils/", "tests/fixtures/"],
-        "regexPatterns": ["src/.*\\.md$", "docs/.*\\.temp\\.*"]
+        "patterns": ["**/*.min.js"],
+        "specificFiles": ["src/config/secret.json"],
+        "specificFolders": ["tests/fixtures/"],
+        "regexPatterns": [".*\\.temp\\..*"]
       }
     },
     "excludeContent": {
-      "files": ["*.config.js", "db/data.ts"],
-      "folders": ["src/config", "tests"],
-      "patterns": [
-        "*.vsix",
-        "**/*.secret.*",
-        "**/.secrets**",
-        "**/*/.env**"
-      ]
+      "files": ["*.env"],
+      "folders": ["src/config"],
+      "patterns": ["**/*.secret.*"]
+    },
+    "output": {
+      "includeContent": true,
+      "includeEmptyFolders": false,
+      "includeFileSize": true,
+      "includeLastModified": false
     }
   }
 }
 ```
 
-### Configuration Tips 💡
+## Consejos de Uso 💡
 
-1. **Workspace vs User Settings**
-   - Use workspace settings for project-specific exclusions
-   - Use user settings for personal preferences
+1. **Configuración Rápida**
+   - Usa la función "Importar desde .gitignore" para una configuración inicial rápida
+   - Aplica plantillas predefinidas según el tipo de proyecto
 
-2. **Pattern Priority**
-   - Specific paths take precedence over patterns
-   - Advanced exclusions override basic exclusions
+2. **Rendimiento**
+   - Para proyectos grandes, considera usar "Solo estructura" para obtener resultados más rápidos
+   - Usa patrones simples cuando sea posible para mejor rendimiento
 
-3. **Performance**
-   - Use simpler patterns when possible
-   - Avoid excessive use of complex regex patterns
-   - Use `debug: true` to troubleshoot pattern matching
+3. **Seguridad**
+   - Usa `excludeContent` para archivos sensibles que deben aparecer en la estructura pero sin mostrar su contenido
+   - Verifica tus patrones antes de compartir salidas de estructura
 
-4. **Security**
-   - Use `excludeContent` for sensitive files
-   - Double-check patterns before sharing structure outputs
-   - Consider using `.gitignore` patterns as a base
+4. **Organización**
+   - Usa la función "Ordenar Patrones" para mantener tu configuración organizada
+   - Ejecuta "Limpiar Duplicados" periódicamente para optimizar tu configuración
 
-## Output Example 📋
+## Atajos de Teclado 🎹
 
-The extension generates output in this format:
+Puedes asignar atajos de teclado personalizados a los comandos de FastStruct:
 
-```
-└── 📁project
-    ├── 📁src
-    │   └── index.js
-    ├── 📁tests
-    │   └── test.js
-    └── README.md
+1. Abre la configuración de atajos (`Ctrl+K Ctrl+S` / `Cmd+K Cmd+S`)
+2. Busca "FastStruct"
+3. Asigna tus atajos preferidos
 
-Path: src/index.js
-Content:
-´´´javascript
-console.log('Hello World');
-´´´
-```
+## Requisitos 📋
 
-## Requirements 📋
+- Visual Studio Code v1.94.0 o superior
 
-- Visual Studio Code v1.94.0 or higher
+## Solución de Problemas 🔧
 
-## License 📜
+### La extensión no genera estructura
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+1. Verifica que tengas permisos de lectura en la carpeta
+2. Revisa la consola de depuración activando `debug: true`
+3. Asegúrate de que no estés excluyendo demasiados archivos
 
-## Support 🤝
+### Los patrones no funcionan como esperaba
 
-If you find a bug or want to request a feature, please create an issue in the [issue tracker](https://github.com/bypabloc/faststruct/issues).
+1. Usa la función "Probar Patrón" en la interfaz de configuración
+2. Verifica la sintaxis de tus expresiones regulares
+3. Recuerda que los patrones glob usan `*` para cualquier carácter y `**` para cualquier profundidad
 
-## Contributing 🌟
+## Licencia 📜
 
-Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) first.
+Este proyecto está licenciado bajo la Licencia Pública General GNU v3.0 - consulta el archivo [LICENSE](LICENSE) para más detalles.
 
-## Support Me with a Coffee ☕
+## Soporte 🤝
 
-If you find this tool useful and want to support its development, you can buy me a coffee through [Buy Me a Coffee](https://buymeacoffee.com/bypablo).
+Si encuentras un error o quieres solicitar una característica, por favor crea un issue en el [rastreador de issues](https://github.com/bypabloc/faststruct/issues).
+
+## Contribuir 🌟
+
+¡Las contribuciones son bienvenidas! Por favor, lee nuestras [pautas de contribución](CONTRIBUTING.md) primero.
+
+## Apóyame con un Café ☕
+
+Si encuentras útil esta herramienta y quieres apoyar su desarrollo, puedes invitarme un café a través de [Buy Me a Coffee](https://buymeacoffee.com/bypablo).
 
 ---
-Made with ❤️ by Pablo Contreras
+Hecho con ❤️ por Pablo Contreras

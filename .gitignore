@@ -142,8 +142,33 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 
+# FastStruct specific
 .output**.txt
-
 **.vsix
-
 out/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# IDE specific
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+*.map
+*.d.ts.map
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Debug logs from FastStruct
+faststruct-debug.log

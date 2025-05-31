@@ -11,8 +11,29 @@
     "rootDir": "./src",
     "resolveJsonModule": true,
     "allowJs": true,
-    "declaration": true
+    "declaration": true,
+    "declarationMap": true,
+    "removeComments": false,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@/types/*": ["types/*"],
+      "@/services/*": ["services/*"],
+      "@/managers/*": ["managers/*"],
+      "@/commands/*": ["commands/*"],
+      "@/utils/*": ["utils/*"],
+      "@/constants/*": ["constants/*"],
+      "@/providers/*": ["providers/*"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", ".vscode-test", "dist"]
+  "include": ["src/**/*", "src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "dist",
+    "out",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }
