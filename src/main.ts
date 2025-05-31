@@ -33,6 +33,10 @@ interface FastStructConfig {
     advanced: ExclusionConfig;
   };
   excludeContent: ContentExclusionConfig;
+  quickExclude?: {
+    enabled: boolean;
+    showNotifications: boolean;
+  };
 }
 
 const AI_STRUCTURE_GUIDE = `# AI File Structure Analysis Guide
@@ -69,6 +73,305 @@ Structure and content follows below:
 
 `;
 
+/**
+ * Clase para manejar las exclusiones dinámicas de FastStruct.
+ *
+ * @author Pablo Contreras
+ * @created 2025/01/31
+ */
+class ExclusionManager {
+  private context: vscode.ExtensionContext;
+
+  constructor(context: vscode.ExtensionContext) {
+    this.context = context;
+  }
+
+  /**
+   * Agrega una exclusión a la configuración.
+   *
+   * @param type - Tipo de exclusión
+   * @param value - Valor a excluir
+   * @param configPath - Ruta en la configuración
+   * @author Pablo Contreras
+   * @created 2025/01/31
+   */
+  async addExclusion(type: string, value: string, configPath: string) {
+    try {
+      Logger.info(
+        `Iniciando addExclusion: ${type} = ${value} en ${configPath}`
+      );
+
+      // Verificar si hay un workspace abierto
+      if (
+        !vscode.workspace.workspaceFolders ||
+        vscode.workspace.workspaceFolders.length === 0
+      ) {
+        const answer = await vscode.window.showWarningMessage(
+          "No hay un workspace abierto. ¿Deseas guardar la exclusión globalmente?",
+          "Sí",
+          "No"
+        );
+
+        if (answer !== "Sí") {
+          return;
+        }
+      } else {
+        // Crear directorio .vscode si no existe
+        const workspaceFolder = vscode.workspace.workspaceFolders[0];
+        const vscodePath = path.join(workspaceFolder.uri.fsPath, ".vscode");
+
+        if (!fs.existsSync(vscodePath)) {
+          Logger.info(`Creando directorio .vscode en ${vscodePath}`);
+          fs.mkdirSync(vscodePath, { recursive: true });
+        }
+      }
+
+      // Obtener la configuración actual completa
+      const configuration = vscode.workspace.getConfiguration("faststruct");
+      const currentConfig = configuration.get<any>("config") || {};
+
+      Logger.info("Configuración actual:", currentConfig);
+
+      // Crear una copia profunda de la configuración para modificar
+      const newConfig = JSON.parse(JSON.stringify(currentConfig));
+
+      // Asegurar que la estructura existe
+      if (!newConfig.exclude) {
+        newConfig.exclude = {
+          folders: currentConfig.exclude?.folders || [],
+          files: currentConfig.exclude?.files || [],
+          advanced: {
+            patterns: [],
+            specificFiles: [],
+            specificFolders: [],
+            regexPatterns: [],
+          },
+        };
+      }
+
+      if (!newConfig.exclude.advanced) {
+        newConfig.exclude.advanced = {
+          patterns: currentConfig.exclude?.advanced?.patterns || [],
+          specificFiles: currentConfig.exclude?.advanced?.specificFiles || [],
+          specificFolders:
+            currentConfig.exclude?.advanced?.specificFolders || [],
+          regexPatterns: currentConfig.exclude?.advanced?.regexPatterns || [],
+        };
+      }
+
+      if (!newConfig.excludeContent) {
+        newConfig.excludeContent = {
+          files: currentConfig.excludeContent?.files || [],
+          folders: currentConfig.excludeContent?.folders || [],
+          patterns: currentConfig.excludeContent?.patterns || [],
+        };
+      }
+
+      // Navegar a la propiedad correcta y agregar el valor
+      const pathParts = configPath.split(".");
+      let current: any = newConfig;
+
+      // Navegar hasta el penúltimo elemento
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i];
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+
+      // Obtener la última parte (el array donde agregar)
+      const lastPart = pathParts[pathParts.length - 1];
+      if (!current[lastPart] || !Array.isArray(current[lastPart])) {
+        current[lastPart] = [];
+      }
+
+      // Verificar si ya existe
+      if (!current[lastPart].includes(value)) {
+        current[lastPart].push(value);
+
+        Logger.info("Nueva configuración a guardar:", newConfig);
+
+        // Determinar el target basado en si hay workspace
+        const target =
+          vscode.workspace.workspaceFolders &&
+          vscode.workspace.workspaceFolders.length > 0
+            ? vscode.ConfigurationTarget.Workspace
+            : vscode.ConfigurationTarget.Global;
+
+        // Guardar la configuración completa
+        await configuration.update("config", newConfig, target);
+
+        // Verificar que se guardó correctamente
+        const updatedConfig = vscode.workspace
+          .getConfiguration("faststruct")
+          .get("config");
+        Logger.info("Configuración después de guardar:", updatedConfig);
+
+        // Mostrar notificación si está habilitado
+        if (newConfig.quickExclude?.showNotifications !== false) {
+          const location =
+            target === vscode.ConfigurationTarget.Workspace
+              ? "proyecto"
+              : "globalmente";
+          vscode.window.showInformationMessage(
+            `FastStruct: ${type} '${value}' agregado a exclusiones del ${location}`
+          );
+        }
+
+        Logger.info(
+          `Exclusión agregada exitosamente: ${type} = ${value} en ${configPath}`
+        );
+      } else {
+        vscode.window.showWarningMessage(
+          `FastStruct: '${value}' ya está en la lista de exclusiones`
+        );
+        Logger.info(`El valor '${value}' ya existe en ${configPath}`);
+      }
+    } catch (error) {
+      Logger.error("Error al agregar exclusión", error);
+      vscode.window.showErrorMessage(
+        `Error al agregar exclusión: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  /**
+   * Remueve una exclusión de la configuración.
+   *
+   * @param value - Valor a remover
+   * @param configPath - Ruta en la configuración
+   * @author Pablo Contreras
+   * @created 2025/01/31
+   */
+  async removeExclusion(value: string, configPath: string) {
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+    const config = configuration.get<FastStructConfig>(
+      "config",
+      {} as FastStructConfig
+    );
+
+    // Navegar a la propiedad correcta
+    const pathParts = configPath.split(".");
+    let current: any = config;
+
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      if (!current[pathParts[i]]) {
+        return; // No existe la ruta
+      }
+      current = current[pathParts[i]];
+    }
+
+    const lastPart = pathParts[pathParts.length - 1];
+    if (current[lastPart] && Array.isArray(current[lastPart])) {
+      const index = current[lastPart].indexOf(value);
+      if (index > -1) {
+        current[lastPart].splice(index, 1);
+
+        // Guardar configuración
+        await configuration.update(
+          "config",
+          config,
+          vscode.ConfigurationTarget.Workspace
+        );
+
+        vscode.window.showInformationMessage(
+          `FastStruct: '${value}' removido de exclusiones`
+        );
+
+        Logger.info(`Exclusión removida: ${value}`);
+      }
+    }
+  }
+
+  /**
+   * Muestra todas las exclusiones actuales.
+   *
+   * @author Pablo Contreras
+   * @created 2025/01/31
+   */
+  async showExclusions() {
+    const configuration = vscode.workspace.getConfiguration("faststruct");
+    const config = configuration.get<FastStructConfig>(
+      "config",
+      {} as FastStructConfig
+    );
+
+    // Crear contenido para mostrar
+    let content = "# FastStruct - Exclusiones Actuales\n\n";
+
+    content += "## Exclusiones de Estructura\n\n";
+
+    content += "### Carpetas\n";
+    content +=
+      config.exclude.folders.map((f) => `- ${f}`).join("\n") || "*Ninguna*";
+    content += "\n\n";
+
+    content += "### Archivos\n";
+    content +=
+      config.exclude.files.map((f) => `- ${f}`).join("\n") || "*Ninguna*";
+    content += "\n\n";
+
+    content += "### Exclusiones Avanzadas\n\n";
+
+    content += "#### Patrones\n";
+    content +=
+      config.exclude.advanced.patterns.map((p) => `- ${p}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "#### Archivos Específicos\n";
+    content +=
+      config.exclude.advanced.specificFiles.map((f) => `- ${f}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "#### Carpetas Específicas\n";
+    content +=
+      config.exclude.advanced.specificFolders.map((f) => `- ${f}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "#### Expresiones Regulares\n";
+    content +=
+      config.exclude.advanced.regexPatterns.map((r) => `- ${r}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "## Exclusiones de Contenido\n\n";
+
+    content += "### Archivos\n";
+    content +=
+      config.excludeContent.files.map((f) => `- ${f}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "### Carpetas\n";
+    content +=
+      config.excludeContent.folders.map((f) => `- ${f}`).join("\n") ||
+      "*Ninguna*";
+    content += "\n\n";
+
+    content += "### Patrones\n";
+    content +=
+      config.excludeContent.patterns.map((p) => `- ${p}`).join("\n") ||
+      "*Ninguna*";
+
+    // Mostrar en un nuevo documento
+    const document = await vscode.workspace.openTextDocument({
+      content: content,
+      language: "markdown",
+    });
+
+    await vscode.window.showTextDocument(document, {
+      preview: false,
+      viewColumn: vscode.ViewColumn.Beside,
+    });
+  }
+}
+
 function log(message: string, config: FastStructConfig) {
   if (config.debug) {
     Logger.debug(message);
@@ -82,6 +385,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Crear el proveedor de webview para la configuración
   const configProvider = new ConfigWebviewProvider(context);
+
+  // Crear el manejador de exclusiones
+  const exclusionManager = new ExclusionManager(context);
 
   function getConfiguration(
     workspaceFolder?: vscode.WorkspaceFolder
@@ -112,6 +418,10 @@ export function activate(context: vscode.ExtensionContext) {
         files: configFile.excludeContent?.files || [],
         folders: configFile.excludeContent?.folders || [],
         patterns: configFile.excludeContent?.patterns || [],
+      },
+      quickExclude: configFile.quickExclude || {
+        enabled: true,
+        showNotifications: true,
       },
     };
   }
@@ -599,12 +909,369 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Comandos para exclusión de archivos
+  const excludeFileCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFile",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      await exclusionManager.addExclusion(
+        "Archivo específico",
+        relativePath,
+        "exclude.advanced.specificFiles"
+      );
+    }
+  );
+
+  const excludeFileExtensionCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFileExtension",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const extension = path.extname(uri.fsPath);
+      if (!extension) {
+        vscode.window.showWarningMessage("El archivo no tiene extensión");
+        return;
+      }
+
+      const pattern = `*${extension}`;
+      await exclusionManager.addExclusion(
+        "Extensión de archivo",
+        pattern,
+        "exclude.files"
+      );
+    }
+  );
+
+  const excludeFileNameCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFileName",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const fileName = path.basename(uri.fsPath);
+      await exclusionManager.addExclusion(
+        "Nombre de archivo",
+        fileName,
+        "exclude.files"
+      );
+    }
+  );
+
+  const excludeFileContentCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFileContent",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      await exclusionManager.addExclusion(
+        "Contenido de archivo",
+        relativePath,
+        "excludeContent.files"
+      );
+    }
+  );
+
+  const excludeFileTypeContentCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFileTypeContent",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const extension = path.extname(uri.fsPath);
+      if (!extension) {
+        vscode.window.showWarningMessage("El archivo no tiene extensión");
+        return;
+      }
+
+      const pattern = `*${extension}`;
+      await exclusionManager.addExclusion(
+        "Contenido por extensión",
+        pattern,
+        "excludeContent.patterns"
+      );
+    }
+  );
+
+  const excludeFilePatternCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFilePattern",
+    async () => {
+      const pattern = await vscode.window.showInputBox({
+        prompt: "Ingrese el patrón de archivos a excluir (ej: **/*.test.js)",
+        placeHolder: "**/*.test.js",
+        validateInput: (value) => {
+          if (!value || value.trim() === "") {
+            return "El patrón no puede estar vacío";
+          }
+          return null;
+        },
+      });
+
+      if (pattern) {
+        await exclusionManager.addExclusion(
+          "Patrón de archivo",
+          pattern,
+          "exclude.advanced.patterns"
+        );
+      }
+    }
+  );
+
+  // Comandos para exclusión de carpetas
+  const excludeFolderCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFolder",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      await exclusionManager.addExclusion(
+        "Carpeta específica",
+        relativePath,
+        "exclude.advanced.specificFolders"
+      );
+    }
+  );
+
+  const excludeFolderNameCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFolderName",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const folderName = path.basename(uri.fsPath);
+      await exclusionManager.addExclusion(
+        "Nombre de carpeta",
+        folderName,
+        "exclude.folders"
+      );
+    }
+  );
+
+  const excludeFolderContentCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFolderContent",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      await exclusionManager.addExclusion(
+        "Contenido de carpeta",
+        relativePath,
+        "excludeContent.folders"
+      );
+    }
+  );
+
+  const excludeSubfoldersCommand = vscode.commands.registerCommand(
+    "faststruct.excludeSubfolders",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      const pattern = `${relativePath}/**/`;
+
+      await exclusionManager.addExclusion(
+        "Subcarpetas",
+        pattern,
+        "exclude.advanced.patterns"
+      );
+    }
+  );
+
+  const excludeFolderPatternCommand = vscode.commands.registerCommand(
+    "faststruct.excludeFolderPattern",
+    async () => {
+      const pattern = await vscode.window.showInputBox({
+        prompt: "Ingrese el patrón de carpetas a excluir (ej: **/temp/)",
+        placeHolder: "**/temp/",
+        validateInput: (value) => {
+          if (!value || value.trim() === "") {
+            return "El patrón no puede estar vacío";
+          }
+          return null;
+        },
+      });
+
+      if (pattern) {
+        await exclusionManager.addExclusion(
+          "Patrón de carpeta",
+          pattern,
+          "exclude.advanced.patterns"
+        );
+      }
+    }
+  );
+
+  // Comandos para incluir (remover exclusiones)
+  const includeFileCommand = vscode.commands.registerCommand(
+    "faststruct.includeFile",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      const fileName = path.basename(uri.fsPath);
+
+      // Buscar en todas las posibles ubicaciones y remover
+      await exclusionManager.removeExclusion(
+        relativePath,
+        "exclude.advanced.specificFiles"
+      );
+      await exclusionManager.removeExclusion(fileName, "exclude.files");
+      await exclusionManager.removeExclusion(
+        relativePath,
+        "excludeContent.files"
+      );
+    }
+  );
+
+  const includeFolderCommand = vscode.commands.registerCommand(
+    "faststruct.includeFolder",
+    async (uri: vscode.Uri) => {
+      if (!uri) return;
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) return;
+
+      const relativePath = path
+        .relative(workspaceFolder.uri.fsPath, uri.fsPath)
+        .replace(/\\/g, "/");
+      const folderName = path.basename(uri.fsPath);
+
+      // Buscar en todas las posibles ubicaciones y remover
+      await exclusionManager.removeExclusion(
+        relativePath,
+        "exclude.advanced.specificFolders"
+      );
+      await exclusionManager.removeExclusion(folderName, "exclude.folders");
+      await exclusionManager.removeExclusion(
+        relativePath,
+        "excludeContent.folders"
+      );
+    }
+  );
+
+  // Comando para mostrar exclusiones
+  const showExclusionsCommand = vscode.commands.registerCommand(
+    "faststruct.showExclusions",
+    async () => {
+      await exclusionManager.showExclusions();
+    }
+  );
+
+  // Comando para crear estructura con vista previa
+  const createStructureWithPreviewCommand = vscode.commands.registerCommand(
+    "faststruct.createStructureWithPreview",
+    async (uri: vscode.Uri) => {
+      if (!uri) {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+          uri = workspaceFolders[0].uri;
+        } else {
+          vscode.window.showErrorMessage(
+            "No folder selected and no workspace folder found."
+          );
+          return;
+        }
+      }
+
+      try {
+        const folderPath = uri.fsPath;
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        const config = getConfiguration(workspaceFolder);
+
+        // Mostrar lista de archivos que serán incluidos/excluidos
+        const structure = readDirectoryStructure(folderPath, config);
+
+        // Contar archivos y carpetas
+        let fileCount = 0;
+        let folderCount = 0;
+
+        const countItems = (items: TreeItem[]) => {
+          for (const item of items) {
+            if (item.type === "file") {
+              fileCount++;
+            } else {
+              folderCount++;
+              if (item.children) {
+                countItems(item.children);
+              }
+            }
+          }
+        };
+
+        countItems(structure);
+
+        const answer = await vscode.window.showInformationMessage(
+          `Se generará la estructura con ${fileCount} archivos y ${folderCount} carpetas. ¿Continuar?`,
+          "Sí, generar",
+          "Ver configuración",
+          "Cancelar"
+        );
+
+        if (answer === "Sí, generar") {
+          await vscode.commands.executeCommand(
+            "faststruct.createStructureContext",
+            uri
+          );
+        } else if (answer === "Ver configuración") {
+          await vscode.commands.executeCommand("faststruct.openSettings");
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Error: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+  );
+
   // Registrar todos los comandos
   context.subscriptions.push(
     createStructureContextCommand,
     openSettingsCommand,
     createStructureCommand,
-    checkConfigCommand
+    checkConfigCommand,
+    excludeFileCommand,
+    excludeFileExtensionCommand,
+    excludeFileNameCommand,
+    excludeFileContentCommand,
+    excludeFileTypeContentCommand,
+    excludeFilePatternCommand,
+    excludeFolderCommand,
+    excludeFolderNameCommand,
+    excludeFolderContentCommand,
+    excludeSubfoldersCommand,
+    excludeFolderPatternCommand,
+    includeFileCommand,
+    includeFolderCommand,
+    showExclusionsCommand,
+    createStructureWithPreviewCommand
   );
 }
 

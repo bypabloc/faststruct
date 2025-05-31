@@ -2,7 +2,7 @@
   "name": "faststruct",
   "displayName": "FastStruct",
   "description": "VS Code extension to quickly visualize and document your project's file structure",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "publisher": "the-full-stack",
   "author": {
     "name": "Pablo Contreras"
@@ -15,8 +15,8 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint . --ext .ts,.tsx",
-    "npm:install": "rm -rf node_modules && rm -rf dist && npm cache clean --force && npm install",
-    "npm:reinstall": "rm -rf node_modules && rm -rf dist && rm -rf .nuxt && rm -f package-lock.json && npm cache clean --force && npm install"
+    "npm:install": "rm -rf node_modules && rm -rf out && npm cache clean --force && npm install",
+    "npm:reinstall": "rm -rf node_modules && rm -rf out && rm -f package-lock.json && npm cache clean --force && npm install"
   },
   "license": "GPL-3.0",
   "repository": {
@@ -36,39 +36,194 @@
     "commands": [
       {
         "command": "faststruct.createStructure",
-        "title": "FastStruct: Create Structure"
+        "title": "Create Structure"
       },
       {
         "command": "faststruct.createStructureContext",
-        "title": "FastStruct: Create Structure Here",
+        "title": "Crear estructura aquí",
         "category": "FastStruct"
       },
       {
         "command": "faststruct.openSettings",
-        "title": "FastStruct: Open Settings",
+        "title": "Open Settings",
         "category": "FastStruct",
         "icon": "$(settings-gear)"
       },
       {
         "command": "faststruct.checkConfig",
-        "title": "FastStruct: Check Configuration Location",
+        "title": "Check Configuration Location",
         "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.excludeFile",
+        "title": "Excluir este archivo específico"
+      },
+      {
+        "command": "faststruct.excludeFileExtension",
+        "title": "Excluir archivos con esta extensión"
+      },
+      {
+        "command": "faststruct.excludeFileName",
+        "title": "Excluir archivos con este nombre"
+      },
+      {
+        "command": "faststruct.excludeFileContent",
+        "title": "Excluir solo el contenido de este archivo"
+      },
+      {
+        "command": "faststruct.excludeFileTypeContent",
+        "title": "Excluir contenido de archivos con esta extensión"
+      },
+      {
+        "command": "faststruct.excludeFilePattern",
+        "title": "Excluir archivos que coincidan con patrón..."
+      },
+      {
+        "command": "faststruct.excludeFolder",
+        "title": "Excluir esta carpeta específica"
+      },
+      {
+        "command": "faststruct.excludeFolderName",
+        "title": "Excluir carpetas con este nombre"
+      },
+      {
+        "command": "faststruct.excludeFolderContent",
+        "title": "Excluir solo el contenido de esta carpeta"
+      },
+      {
+        "command": "faststruct.excludeSubfolders",
+        "title": "Excluir subcarpetas pero mantener archivos"
+      },
+      {
+        "command": "faststruct.excludeFolderPattern",
+        "title": "Excluir carpetas que coincidan con patrón..."
+      },
+      {
+        "command": "faststruct.includeFile",
+        "title": "Incluir este archivo (remover exclusión)"
+      },
+      {
+        "command": "faststruct.includeFolder",
+        "title": "Incluir esta carpeta (remover exclusión)"
+      },
+      {
+        "command": "faststruct.showExclusions",
+        "title": "Ver todas las exclusiones actuales"
+      },
+      {
+        "command": "faststruct.createStructureWithPreview",
+        "title": "Crear estructura con vista previa"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "when": "explorerResourceIsFolder",
-          "command": "faststruct.createStructureContext",
-          "group": "z_commands"
+          "submenu": "faststruct.mainMenu",
+          "group": "z_faststruct"
         }
       ],
-      "commandPalette": [
+      "faststruct.mainMenu": [
         {
-          "command": "faststruct.openSettings"
+          "command": "faststruct.createStructureContext",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "faststruct.createStructureWithPreview",
+          "group": "1_actions@2"
+        },
+        {
+          "submenu": "faststruct.fileMenu",
+          "when": "!explorerResourceIsFolder",
+          "group": "2_exclusions@1"
+        },
+        {
+          "submenu": "faststruct.folderMenu",
+          "when": "explorerResourceIsFolder",
+          "group": "2_exclusions@2"
+        },
+        {
+          "command": "faststruct.openSettings",
+          "group": "3_config@1"
+        },
+        {
+          "command": "faststruct.showExclusions",
+          "group": "3_config@2"
+        }
+      ],
+      "faststruct.fileMenu": [
+        {
+          "command": "faststruct.excludeFile",
+          "group": "1_exclude@1"
+        },
+        {
+          "command": "faststruct.excludeFileExtension",
+          "group": "1_exclude@2"
+        },
+        {
+          "command": "faststruct.excludeFileName",
+          "group": "1_exclude@3"
+        },
+        {
+          "command": "faststruct.excludeFilePattern",
+          "group": "1_exclude@4"
+        },
+        {
+          "command": "faststruct.excludeFileContent",
+          "group": "2_content@1"
+        },
+        {
+          "command": "faststruct.excludeFileTypeContent",
+          "group": "2_content@2"
+        },
+        {
+          "command": "faststruct.includeFile",
+          "group": "3_include@1"
+        }
+      ],
+      "faststruct.folderMenu": [
+        {
+          "command": "faststruct.excludeFolder",
+          "group": "1_exclude@1"
+        },
+        {
+          "command": "faststruct.excludeFolderName",
+          "group": "1_exclude@2"
+        },
+        {
+          "command": "faststruct.excludeFolderPattern",
+          "group": "1_exclude@3"
+        },
+        {
+          "command": "faststruct.excludeSubfolders",
+          "group": "1_exclude@4"
+        },
+        {
+          "command": "faststruct.excludeFolderContent",
+          "group": "2_content@1"
+        },
+        {
+          "command": "faststruct.includeFolder",
+          "group": "3_include@1"
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "faststruct.mainMenu",
+        "label": "FastStruct",
+        "icon": "$(list-tree)"
+      },
+      {
+        "id": "faststruct.fileMenu",
+        "label": "Exclusiones de Archivo",
+        "icon": "$(file)"
+      },
+      {
+        "id": "faststruct.folderMenu",
+        "label": "Exclusiones de Carpeta",
+        "icon": "$(folder)"
+      }
+    ],
     "configuration": {
       "title": "FastStruct",
       "properties": {
@@ -202,6 +357,22 @@
                     "type": "string"
                   },
                   "description": "Patrones de archivos cuyo contenido no se mostrará"
+                }
+              }
+            },
+            "quickExclude": {
+              "type": "object",
+              "description": "Exclusiones rápidas agregadas desde el menú contextual",
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Habilitar exclusiones rápidas"
+                },
+                "showNotifications": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Mostrar notificaciones al agregar exclusiones"
                 }
               }
             }
