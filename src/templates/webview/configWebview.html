@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <link href="${styleUri}" rel="stylesheet">
+    <title>FastStruct Configuration</title>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>⚙️ FastStruct</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-section="overview">
+                    <span class="nav-icon">📊</span>
+                    <span>Vista General</span>
+                </a>
+                <a href="#" class="nav-item" data-section="structure">
+                    <span class="nav-icon">📁</span>
+                    <span>Exclusiones de Estructura</span>
+                </a>
+                <a href="#" class="nav-item" data-section="content">
+                    <span class="nav-icon">📝</span>
+                    <span>Exclusiones de Contenido</span>
+                </a>
+                <a href="#" class="nav-item" data-section="output">
+                    <span class="nav-icon">📤</span>
+                    <span>Opciones de Salida</span>
+                </a>
+                <a href="#" class="nav-item" data-section="tools">
+                    <span class="nav-icon">🛠️</span>
+                    <span>Herramientas</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-primary" id="saveButton" style="width: 100%; margin-bottom: 10px;">
+                    💾 Guardar Configuración
+                </button>
+                <div id="configSource" style="font-size: 0.85em; color: var(--vscode-descriptionForeground); text-align: center;"></div>
+            </div>
+        </aside>
+
+        <!-- Mobile menu toggle -->
+        <button class="mobile-menu-toggle btn-icon" id="mobileMenuToggle">☰</button>
+
+        <!-- Main content -->
+        <main class="content-area">
+            <!-- Vista General -->
+            <section class="content-section active" id="overview-section">
+                <h1 style="margin-bottom: 30px;">Vista General de Configuración</h1>
+                
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <p class="stat-value">-</p>
+                        <p class="stat-label">Archivos Totales</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-value">-</p>
+                        <p class="stat-label">Archivos Excluidos</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-value">-</p>
+                        <p class="stat-label">Carpetas Totales</p>
+                    </div>
+                    <div class="stat-card">
+                        <p class="stat-value">-</p>
+                        <p class="stat-label">Carpetas Excluidas</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Impacto de las Exclusiones</h3>
+                    </div>
+                    <div class="stat-label">Archivos excluidos</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="filesProgress" style="width: 0%"></div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="stat-label">Carpetas excluidas</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="foldersProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <div class="stat-label">Tamaño excluido</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="sizeProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🚀 Inicio Rápido</h3>
+                        <p class="card-description">Acciones comunes para configurar FastStruct rápidamente</p>
+                    </div>
+                    <div style="display: grid; gap: 10px;">
+                        <button class="btn btn-secondary" id="importGitignoreBtn">
+                            📥 Importar desde .gitignore
+                        </button>
+                        <button class="btn btn-secondary" id="addCommonExclusionsBtn">
+                            ➕ Agregar exclusiones comunes
+                        </button>
+                        <button class="btn btn-secondary" id="resetConfigBtn">
+                            🔄 Restablecer configuración
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-banner">
+                    <span class="info-banner-icon">ℹ️</span>
+                    <span class="info-banner-text">
+                        FastStruct te ayuda a generar documentación de la estructura de tu proyecto. 
+                        Configura qué archivos y carpetas excluir para obtener resultados más limpios.
+                    </span>
+                </div>
+            </section>
+
+            <!-- Exclusiones de Estructura -->
+            <section class="content-section" id="structure-section">
+                <h1 style="margin-bottom: 30px;">Exclusiones de Estructura</h1>
+                
+                <div class="tabs">
+                    <button class="tab active" data-tab="basic">Básicas</button>
+                    <button class="tab" data-tab="advanced">Avanzadas</button>
+                </div>
+
+                <!-- Tab: Básicas -->
+                <div class="tab-content active" data-tab-content="basic">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📁 Carpetas a Excluir</h3>
+                            <p class="card-description">Carpetas que no aparecerán en la estructura generada</p>
+                        </div>
+                        
+                        <div class="search-box">
+                            <input type="text" class="search-input" id="searchExcludeFolders" placeholder="Buscar carpetas...">
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        
+                        <div class="enhanced-list" id="excludeFolders">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newExcludeFolder" placeholder="ej: node_modules" />
+                            <button class="btn btn-primary" id="addExcludeFolder">➕ Agregar</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📄 Archivos a Excluir</h3>
+                            <p class="card-description">Patrones de archivos que no aparecerán en la estructura</p>
+                        </div>
+                        
+                        <div class="search-box">
+                            <input type="text" class="search-input" id="searchExcludeFiles" placeholder="Buscar archivos...">
+                            <span class="search-icon">🔍</span>
+                        </div>
+                        
+                        <div class="enhanced-list" id="excludeFiles">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newExcludeFile" placeholder="ej: *.log" />
+                            <button class="btn btn-primary" id="addExcludeFile">➕ Agregar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Avanzadas -->
+                <div class="tab-content" data-tab-content="advanced">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🎯 Patrones Glob</h3>
+                            <p class="card-description">Usa patrones glob para coincidencias más complejas</p>
+                        </div>
+                        
+                        <div class="enhanced-list" id="advancedPatterns">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newAdvancedPattern" placeholder="ej: **/*.min.js" />
+                            <button class="btn btn-primary" id="addAdvancedPattern">➕ Agregar</button>
+                        </div>
+                        
+                        <div class="pattern-tester">
+                            <h4 style="margin-top: 0;">Probar Patrón</h4>
+                            <div class="pattern-input-group">
+                                <input type="text" id="testPattern" placeholder="Ingresa un patrón para probar">
+                                <button class="btn btn-secondary" id="testPatternBtn">Probar</button>
+                            </div>
+                            <div class="test-results" id="patternTestResults"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📍 Archivos Específicos</h3>
+                            <p class="card-description">Rutas exactas de archivos a excluir</p>
+                        </div>
+                        
+                        <div class="enhanced-list" id="specificFiles">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newSpecificFile" placeholder="ej: src/config/secret.json" />
+                            <button class="btn btn-primary" id="addSpecificFile">➕ Agregar</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">📁 Carpetas Específicas</h3>
+                            <p class="card-description">Rutas exactas de carpetas a excluir</p>
+                        </div>
+                        
+                        <div class="enhanced-list" id="specificFolders">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newSpecificFolder" placeholder="ej: tests/fixtures/" />
+                            <button class="btn btn-primary" id="addSpecificFolder">➕ Agregar</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">🔤 Expresiones Regulares</h3>
+                            <p class="card-description">Patrones regex para exclusiones más complejas</p>
+                        </div>
+                        
+                        <div class="enhanced-list" id="regexPatterns">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                        
+                        <div class="add-item">
+                            <input type="text" id="newRegexPattern" placeholder="ej: src/.*\\.temp\\.*" />
+                            <button class="btn btn-primary" id="addRegexPattern">➕ Agregar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Exclusiones de Contenido -->
+            <section class="content-section" id="content-section">
+                <h1 style="margin-bottom: 30px;">Exclusiones de Contenido</h1>
+                
+                <div class="info-banner">
+                    <span class="info-banner-icon">💡</span>
+                    <span class="info-banner-text">
+                        Los elementos aquí configurados aparecerán en la estructura pero su contenido no se mostrará.
+                        Útil para archivos sensibles o de configuración.
+                    </span>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📄 Archivos sin Contenido</h3>
+                        <p class="card-description">Archivos que aparecerán en la estructura pero sin mostrar su contenido</p>
+                    </div>
+                    
+                    <div class="enhanced-list" id="contentFiles">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <div class="add-item">
+                        <input type="text" id="newContentFile" placeholder="ej: *.env" />
+                        <button class="btn btn-primary" id="addContentFile">➕ Agregar</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📁 Carpetas sin Contenido</h3>
+                        <p class="card-description">Carpetas cuyos archivos no mostrarán contenido</p>
+                    </div>
+                    
+                    <div class="enhanced-list" id="contentFolders">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <div class="add-item">
+                        <input type="text" id="newContentFolder" placeholder="ej: src/config" />
+                        <button class="btn btn-primary" id="addContentFolder">➕ Agregar</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🎯 Patrones de Contenido</h3>
+                        <p class="card-description">Patrones para excluir contenido de múltiples archivos</p>
+                    </div>
+                    
+                    <div class="enhanced-list" id="contentPatterns">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                    
+                    <div class="add-item">
+                        <input type="text" id="newContentPattern" placeholder="ej: **/*.secret.*" />
+                        <button class="btn btn-primary" id="addContentPattern">➕ Agregar</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Opciones de Salida -->
+            <section class="content-section" id="output-section">
+                <h1 style="margin-bottom: 30px;">Opciones de Salida</h1>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">⚙️ Configuración General</h3>
+                        <p class="card-description">Controla cómo se genera la salida de la estructura</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                <strong>Incluir contenido de archivos</strong>
+                                <div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: 4px;">
+                                    Muestra el contenido de los archivos en la salida
+                                </div>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeContent" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                <strong>Incluir carpetas vacías</strong>
+                                <div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: 4px;">
+                                    Muestra carpetas aunque no tengan archivos
+                                </div>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeEmptyFolders" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                <strong>Mostrar tamaño de archivos</strong>
+                                <div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: 4px;">
+                                    Agrega el tamaño de cada archivo en la estructura
+                                </div>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeFileSize">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                <strong>Mostrar fecha de modificación</strong>
+                                <div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: 4px;">
+                                    Incluye la última fecha de modificación
+                                </div>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeLastModified">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🐛 Depuración</h3>
+                        <p class="card-description">Opciones para solución de problemas</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                <strong>Modo debug</strong>
+                                <div style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: 4px;">
+                                    Muestra información detallada en la consola
+                                </div>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="debug">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Herramientas -->
+            <section class="content-section" id="tools-section">
+                <h1 style="margin-bottom: 30px;">Herramientas</h1>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📥 Importar/Exportar</h3>
+                        <p class="card-description">Guarda y restaura tu configuración</p>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button class="btn btn-secondary" id="exportButton">
+                            📤 Exportar Configuración
+                        </button>
+                        <button class="btn btn-secondary" id="importButton">
+                            📥 Importar Configuración
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🧹 Mantenimiento</h3>
+                        <p class="card-description">Acciones de mantenimiento de la configuración</p>
+                    </div>
+                    
+                    <button class="btn btn-secondary" id="cleanDuplicatesBtn" style="width: 100%; margin-bottom: 10px;">
+                        🔍 Limpiar Duplicados
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="sortPatternsBtn" style="width: 100%;">
+                        🔤 Ordenar Patrones
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📚 Plantillas Comunes</h3>
+                        <p class="card-description">Agrega exclusiones comunes con un clic</p>
+                    </div>
+                    
+                    <div style="display: grid; gap: 10px;">
+                        <button class="btn btn-secondary template-btn" data-template="node">
+                            🟢 Node.js Project
+                        </button>
+                        <button class="btn btn-secondary template-btn" data-template="python">
+                            🐍 Python Project
+                        </button>
+                        <button class="btn btn-secondary template-btn" data-template="java">
+                            ☕ Java Project
+                        </button>
+                        <button class="btn btn-secondary template-btn" data-template="dotnet">
+                            🔷 .NET Project
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification container -->
+    <div id="notificationContainer"></div>
+
+    <script nonce="${nonce}">
+        ${scriptContent}
+    </script>
+</body>
+</html>
