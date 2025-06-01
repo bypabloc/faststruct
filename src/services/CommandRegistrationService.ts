@@ -3,6 +3,7 @@ import { Logger } from '../logger';
 import { registerStructureCommands } from '../commands/structureCommands';
 import { registerExclusionCommands } from '../commands/exclusionCommands';
 import { registerConfigCommands } from '../commands/configCommands';
+import { registerBranchComparisonCommands } from '../commands/branchComparisonCommands';
 
 /**
  * Servicio para registrar todos los comandos de la extensión.
@@ -61,6 +62,10 @@ export class CommandRegistrationService {
       const configDisposables = registerConfigCommands(context);
       context.subscriptions.push(...configDisposables);
       Logger.info(`${configDisposables.length} comandos de configuración registrados`);
+      
+      // Registrar comandos de comparación de ramas
+      registerBranchComparisonCommands(context);
+      Logger.info('Comandos de comparación de ramas registrados');
       
       // Registrar comando de verificación de salud
       this.registerHealthCheckCommand(context);
@@ -134,7 +139,10 @@ FastStruct Health Check:
       'faststruct.excludeSubfolders',
       'faststruct.excludeFolderPattern',
       'faststruct.includeFile',
-      'faststruct.includeFolder'
+      'faststruct.includeFolder',
+      'faststruct.compareBranches',
+      'faststruct.compareBranchesWithCurrent',
+      'faststruct.listBranches'
     ];
     
     const registeredCommands = await vscode.commands.getCommands();

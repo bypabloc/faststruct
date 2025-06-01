@@ -90,8 +90,8 @@ describe('CommandRegistrationService', () => {
     it('debe agregar disposables al contexto', () => {
       service.registerAllCommands(mockContext);
       
-      // 3 de structure + 2 de exclusion + 1 de config + 1 de health check = 7
-      expect(mockContext.subscriptions).toHaveLength(7);
+      // 3 de structure + 2 de exclusion + 1 de config + 3 de branch comparison + 1 de health check = 10
+      expect(mockContext.subscriptions).toHaveLength(10);
     });
 
     it('debe registrar el comando health check', () => {
@@ -181,7 +181,10 @@ describe('CommandRegistrationService', () => {
       'faststruct.excludeSubfolders',
       'faststruct.excludeFolderPattern',
       'faststruct.includeFile',
-      'faststruct.includeFolder'
+      'faststruct.includeFolder',
+      'faststruct.compareBranches',
+      'faststruct.compareBranchesWithCurrent',
+      'faststruct.listBranches'
     ];
 
     it('debe retornar true cuando todos los comandos están registrados', async () => {
@@ -236,7 +239,7 @@ describe('CommandRegistrationService', () => {
       expect(result).toBe(true);
       
       // Verificar que la lista de comandos esperados esté completa
-      expect(expectedCommands).toHaveLength(21);
+      expect(expectedCommands).toHaveLength(24);
     });
   });
 

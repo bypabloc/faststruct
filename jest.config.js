@@ -24,7 +24,7 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/out/'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   transform: {
-    '^.+\.ts$': ['ts-jest', {
+    '^.+\\.ts$': ['ts-jest', {
       tsconfig: {
         esModuleInterop: true,
         allowJs: true

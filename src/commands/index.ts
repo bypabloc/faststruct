@@ -8,3 +8,4 @@
 export * from './structureCommands';
 export * from './exclusionCommands';
 export * from './configCommands';
+export * from './branchComparisonCommands';
