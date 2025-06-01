@@ -40,6 +40,14 @@ export interface ComparisonOptions {
   showDiff?: boolean;
 }
 
+interface TreeNodeWithChanges {
+  type: 'file' | 'directory';
+  status?: 'added' | 'modified' | 'deleted';
+  additions?: number;
+  deletions?: number;
+  [key: string]: any;
+}
+
 export class BranchComparisonService {
   private static instance: BranchComparisonService;
   private structureGenerator: StructureGeneratorService;
@@ -152,10 +160,32 @@ export class BranchComparisonService {
       );
 
       // Parse file changes
-      const filesChanged = this.parseFileChanges(nameStatus, stat);
+      const allFilesChanged = this.parseFileChanges(nameStatus, stat);
 
-      // Calculate summary
-      const summary = this.calculateSummary(filesChanged, stat);
+      // Get current configuration and apply exclusions
+      const config = await this.configService.getConfiguration();
+      const filesChanged = [];
+
+      for (const fileChange of allFilesChanged) {
+        const fullPath = path.join(workspaceRoot, fileChange.path);
+        const fileName = path.basename(fileChange.path);
+        
+        // Check if file should be excluded
+        const shouldExclude = this.patternMatcher.shouldExclude(
+          fullPath,
+          fileName,
+          'file',
+          config,
+          workspaceRoot
+        );
+        
+        if (!shouldExclude) {
+          filesChanged.push(fileChange);
+        }
+      }
+
+      // Calculate summary from filtered files
+      const summary = this.calculateSummaryFromFiles(filesChanged);
 
       const result: BranchComparison = {
         sourceBranch,
@@ -187,59 +217,42 @@ export class BranchComparisonService {
     try {
       Logger.functionStart('generateComparisonOutput', { comparison, options });
 
-      let output = '# Branch Comparison\n\n';
-      output += `**Source Branch:** ${comparison.sourceBranch}\n`;
-      output += `**Target Branch:** ${comparison.targetBranch}\n\n`;
+      // Get current configuration for exclusion patterns
+      const config = await this.configService.getConfiguration();
+
+      let output = '# Estructura de archivos - Comparación entre ramas\n\n';
+      output += `**Rama base:** ${comparison.targetBranch}\n`;
+      output += `**Rama con cambios:** ${comparison.sourceBranch}\n\n`;
+
+      // Add exclusion patterns
+      output += this.formatExclusionPatterns(config);
 
       if (comparison.filesChanged.length === 0) {
-        output += 'No differences found between branches\n';
+        output += '## Resultado:\n';
+        output += 'No se encontraron cambios entre las ramas seleccionadas.\n';
         Logger.functionEnd('generateComparisonOutput', output);
         return output;
       }
 
       // Summary section
-      output += '## Summary\n\n';
-      output += `- **Total Files Changed:** ${comparison.summary.totalFiles}\n`;
-      output += `- **Additions:** ${comparison.summary.additions} lines\n`;
-      output += `- **Deletions:** ${comparison.summary.deletions} lines\n`;
-      output += `- **Files Added:** ${comparison.summary.filesAdded}\n`;
-      output += `- **Files Modified:** ${comparison.summary.filesModified}\n`;
-      output += `- **Files Deleted:** ${comparison.summary.filesDeleted}\n\n`;
+      output += '## Resumen\n\n';
+      output += `- **Total archivos modificados:** ${comparison.summary.totalFiles}\n`;
+      output += `- **Líneas agregadas:** ${comparison.summary.additions}\n`;
+      output += `- **Líneas eliminadas:** ${comparison.summary.deletions}\n`;
+      output += `- **Archivos nuevos:** ${comparison.summary.filesAdded}\n`;
+      output += `- **Archivos modificados:** ${comparison.summary.filesModified}\n`;
+      output += `- **Archivos eliminados:** ${comparison.summary.filesDeleted}\n\n`;
 
-      // Files changed section
-      output += '## Files Changed\n\n';
-
-      const addedFiles = comparison.filesChanged.filter(f => f.status === 'added');
-      const modifiedFiles = comparison.filesChanged.filter(f => f.status === 'modified');
-      const deletedFiles = comparison.filesChanged.filter(f => f.status === 'deleted');
-
-      if (addedFiles.length > 0) {
-        output += '### Added Files\n\n';
-        addedFiles.forEach(file => {
-          output += `- \`${file.path}\` (+${file.additions}, -${file.deletions})\n`;
-        });
-        output += '\n';
-      }
-
-      if (modifiedFiles.length > 0) {
-        output += '### Modified Files\n\n';
-        modifiedFiles.forEach(file => {
-          output += `- \`${file.path}\` (+${file.additions}, -${file.deletions})\n`;
-        });
-        output += '\n';
-      }
-
-      if (deletedFiles.length > 0) {
-        output += '### Deleted Files\n\n';
-        deletedFiles.forEach(file => {
-          output += `- \`${file.path}\` (+${file.additions}, -${file.deletions})\n`;
-        });
-        output += '\n';
-      }
+      // Generate tree structure with file changes
+      const treeWithChanges = this.buildFileTreeWithChanges(comparison.filesChanged);
+      
+      output += '## Estructura de archivos:\n```\n';
+      output += this.formatTreeStructureWithChanges(treeWithChanges);
+      output += '\n```\n';
 
       // Full diff section (optional)
       if (options.showDiff && comparison.diffContent) {
-        output += '## Full Diff\n\n';
+        output += '## Diferencias completas\n\n';
         output += '```diff\n';
         output += comparison.diffContent;
         output += '\n```\n';
@@ -402,6 +415,31 @@ export class BranchComparisonService {
   }
 
   /**
+   * Calculate summary statistics from filtered file changes.
+   * 
+   * @param filesChanged - Array of filtered file changes
+   * @returns Summary statistics
+   */
+  private calculateSummaryFromFiles(filesChanged: FileChange[]): BranchComparison['summary'] {
+    const summary = {
+      totalFiles: filesChanged.length,
+      additions: 0,
+      deletions: 0,
+      filesAdded: filesChanged.filter(f => f.status === 'added').length,
+      filesModified: filesChanged.filter(f => f.status === 'modified').length,
+      filesDeleted: filesChanged.filter(f => f.status === 'deleted').length
+    };
+
+    // Calculate from individual files
+    filesChanged.forEach(file => {
+      summary.additions += file.additions;
+      summary.deletions += file.deletions;
+    });
+
+    return summary;
+  }
+
+  /**
    * Generate file structure comparison between two branches.
    * 
    * @param sourceBranch - The branch to compare from
@@ -515,6 +553,41 @@ export class BranchComparisonService {
   }
 
   /**
+   * Build a tree structure from file changes with status information.
+   * 
+   * @param filesChanged - Array of file changes
+   * @returns Tree structure with change information
+   */
+  private buildFileTreeWithChanges(filesChanged: FileChange[]): Record<string, TreeNodeWithChanges> {
+    const tree: any = {};
+
+    filesChanged.forEach(fileChange => {
+      const parts = fileChange.path.split('/');
+      let current = tree;
+
+      parts.forEach((part, index) => {
+        if (index === parts.length - 1) {
+          // It's a file, store the change information
+          current[part] = {
+            type: 'file',
+            status: fileChange.status,
+            additions: fileChange.additions,
+            deletions: fileChange.deletions
+          };
+        } else {
+          // It's a directory
+          if (!current[part]) {
+            current[part] = { type: 'directory' };
+          }
+          current = current[part];
+        }
+      });
+    });
+
+    return tree;
+  }
+
+  /**
    * Format tree structure for display.
    * 
    * @param tree - Tree structure
@@ -541,6 +614,57 @@ export class BranchComparisonService {
     });
 
     return output;
+  }
+
+  /**
+   * Format tree structure with change information for display.
+   * 
+   * @param tree - Tree structure with change information
+   * @param prefix - Prefix for indentation
+   * @returns Formatted tree string with change icons
+   */
+  private formatTreeStructureWithChanges(tree: Record<string, TreeNodeWithChanges>, prefix: string = ''): string {
+    const entries = Object.entries(tree);
+    let output = '';
+
+    entries.forEach(([name, value], index) => {
+      const isLast = index === entries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const extension = isLast ? '    ' : '│   ';
+
+      if (value && value.type === 'file') {
+        // File with change information
+        const icon = this.getChangeIcon(value.status || 'modified');
+        const stats = `(+${value.additions || 0}, -${value.deletions || 0})`;
+        output += `${prefix}${connector}${icon} ${name} ${stats}\n`;
+      } else if (value && value.type === 'directory') {
+        // Directory - remove the type property before recursing
+        const { type, status, additions, deletions, ...children } = value;
+        output += `${prefix}${connector}📁 ${name}\n`;
+        output += this.formatTreeStructureWithChanges(children as Record<string, TreeNodeWithChanges>, prefix + extension);
+      }
+    });
+
+    return output;
+  }
+
+  /**
+   * Get icon for file change status.
+   * 
+   * @param status - File change status
+   * @returns Icon string
+   */
+  private getChangeIcon(status: 'added' | 'modified' | 'deleted'): string {
+    switch (status) {
+      case 'added':
+        return '🆕'; // New file
+      case 'modified':
+        return '📝'; // Modified file
+      case 'deleted':
+        return '🗑️'; // Deleted file
+      default:
+        return '📄'; // Default file
+    }
   }
 
   /**

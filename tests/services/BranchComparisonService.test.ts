@@ -321,23 +321,21 @@ index abcdef..789012 100644
       const output = await service.generateComparisonOutput(comparisonData);
 
       // Assert
-      expect(output).toContain('# Branch Comparison');
-      expect(output).toContain('**Source Branch:** feature/test');
-      expect(output).toContain('**Target Branch:** main');
-      expect(output).toContain('## Summary');
-      expect(output).toContain('- **Total Files Changed:** 3');
-      expect(output).toContain('- **Additions:** 15 lines');
-      expect(output).toContain('- **Deletions:** 18 lines');
-      expect(output).toContain('- **Files Added:** 1');
-      expect(output).toContain('- **Files Modified:** 1');
-      expect(output).toContain('- **Files Deleted:** 1');
-      expect(output).toContain('## Files Changed');
-      expect(output).toContain('### Added Files');
-      expect(output).toContain('- `src/newFile.ts` (+10, -0)');
-      expect(output).toContain('### Modified Files');
-      expect(output).toContain('- `src/modifiedFile.ts` (+5, -3)');
-      expect(output).toContain('### Deleted Files');
-      expect(output).toContain('- `src/deletedFile.ts` (+0, -15)');
+      expect(output).toContain('# Estructura de archivos - Comparación entre ramas');
+      expect(output).toContain('**Rama base:** main');
+      expect(output).toContain('**Rama con cambios:** feature/test');
+      expect(output).toContain('## Patrones de exclusión aplicados:');
+      expect(output).toContain('## Resumen');
+      expect(output).toContain('- **Total archivos modificados:** 3');
+      expect(output).toContain('- **Líneas agregadas:** 15');
+      expect(output).toContain('- **Líneas eliminadas:** 18');
+      expect(output).toContain('- **Archivos nuevos:** 1');
+      expect(output).toContain('- **Archivos modificados:** 1');
+      expect(output).toContain('- **Archivos eliminados:** 1');
+      expect(output).toContain('## Estructura de archivos:');
+      expect(output).toContain('🆕 newFile.ts (+10, -0)');
+      expect(output).toContain('📝 modifiedFile.ts (+5, -3)');
+      expect(output).toContain('🗑️ deletedFile.ts (+0, -15)');
     });
 
     it('should handle empty comparison data', async () => {
@@ -361,7 +359,7 @@ index abcdef..789012 100644
       const output = await service.generateComparisonOutput(comparisonData);
 
       // Assert
-      expect(output).toContain('No differences found between branches');
+      expect(output).toContain('No se encontraron cambios entre las ramas seleccionadas');
     });
 
     it('should include diff content when showDiff option is true', async () => {
@@ -390,7 +388,7 @@ index abcdef..789012 100644
       const output = await service.generateComparisonOutput(comparisonData, { showDiff: true });
 
       // Assert
-      expect(output).toContain('## Full Diff');
+      expect(output).toContain('## Diferencias completas');
       expect(output).toContain('```diff');
       expect(output).toContain(comparisonData.diffContent);
     });
