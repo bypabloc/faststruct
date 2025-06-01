@@ -37,7 +37,11 @@
     "onCommand:faststruct.createStructureContext",
     "onCommand:faststruct.createStructureOnly",
     "onCommand:faststruct.createStructureChoose",
-    "onCommand:faststruct.openSettings"
+    "onCommand:faststruct.openSettings",
+    "onCommand:faststruct.compareBranches",
+    "onCommand:faststruct.compareBranchesWithCurrent",
+    "onCommand:faststruct.compareBranchesStructure",
+    "onCommand:faststruct.listBranches"
   ],
   "main": "./out/main.js",
   "contributes": {
@@ -155,6 +159,30 @@
         "command": "faststruct.healthCheck",
         "title": "Health Check",
         "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.compareBranches",
+        "title": "Comparar diferencias entre ramas",
+        "category": "FastStruct",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "faststruct.compareBranchesWithCurrent",
+        "title": "Comparar con rama actual",
+        "category": "FastStruct",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "faststruct.compareBranchesStructure",
+        "title": "Estructura de archivos - Comparación entre ramas",
+        "category": "FastStruct",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "faststruct.listBranches",
+        "title": "Listar todas las ramas",
+        "category": "FastStruct",
+        "icon": "$(git-branch)"
       }
     ],
     "menus": {
@@ -198,6 +226,10 @@
         {
           "command": "faststruct.showExclusions",
           "group": "3_config@2"
+        },
+        {
+          "submenu": "faststruct.branchMenu",
+          "group": "4_branch@1"
         }
       ],
       "faststruct.fileMenu": [
@@ -255,6 +287,24 @@
           "command": "faststruct.includeFolder",
           "group": "3_include@1"
         }
+      ],
+      "faststruct.branchMenu": [
+        {
+          "command": "faststruct.compareBranchesStructure",
+          "group": "1_compare@1"
+        },
+        {
+          "command": "faststruct.compareBranches",
+          "group": "1_compare@2"
+        },
+        {
+          "command": "faststruct.compareBranchesWithCurrent",
+          "group": "1_compare@3"
+        },
+        {
+          "command": "faststruct.listBranches",
+          "group": "2_list@1"
+        }
       ]
     },
     "submenus": [
@@ -272,6 +322,11 @@
         "id": "faststruct.folderMenu",
         "label": "Exclusiones de Carpeta",
         "icon": "$(folder)"
+      },
+      {
+        "id": "faststruct.branchMenu",
+        "label": "Comparación de Ramas",
+        "icon": "$(git-branch)"
       }
     ],
     "configuration": {

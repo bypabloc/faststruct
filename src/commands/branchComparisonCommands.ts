@@ -12,6 +12,44 @@ import { Logger } from '../logger';
 export function registerBranchComparisonCommands(context: vscode.ExtensionContext): void {
   const branchComparisonService = BranchComparisonService.getInstance();
 
+  // Command: Compare structure between branches
+  context.subscriptions.push(
+    vscode.commands.registerCommand('faststruct.compareBranchesStructure', async () => {
+      try {
+        Logger.functionStart('compareBranchesStructure command');
+
+        // Select branches
+        const selection = await branchComparisonService.selectBranchesForComparison();
+        if (!selection) {
+          return;
+        }
+
+        // Generate structure comparison
+        const output = await branchComparisonService.generateStructureComparison(
+          selection.sourceBranch,
+          selection.targetBranch
+        );
+
+        if (!output) {
+          return;
+        }
+
+        // Show result in new document
+        const document = await vscode.workspace.openTextDocument({
+          content: output,
+          language: 'markdown'
+        });
+
+        await vscode.window.showTextDocument(document);
+
+        Logger.functionEnd('compareBranchesStructure command');
+      } catch (error) {
+        Logger.error('Error in compareBranchesStructure command', error);
+        vscode.window.showErrorMessage(`Failed to compare branch structures: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    })
+  );
+
   // Command: Compare two branches
   context.subscriptions.push(
     vscode.commands.registerCommand('faststruct.compareBranches', async () => {

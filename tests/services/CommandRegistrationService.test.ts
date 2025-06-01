@@ -90,8 +90,8 @@ describe('CommandRegistrationService', () => {
     it('debe agregar disposables al contexto', () => {
       service.registerAllCommands(mockContext);
       
-      // 3 de structure + 2 de exclusion + 1 de config + 3 de branch comparison + 1 de health check = 10
-      expect(mockContext.subscriptions).toHaveLength(10);
+      // 3 de structure + 2 de exclusion + 1 de config + 4 de branch comparison + 1 de health check = 11
+      expect(mockContext.subscriptions).toHaveLength(11);
     });
 
     it('debe registrar el comando health check', () => {
@@ -184,6 +184,7 @@ describe('CommandRegistrationService', () => {
       'faststruct.includeFolder',
       'faststruct.compareBranches',
       'faststruct.compareBranchesWithCurrent',
+      'faststruct.compareBranchesStructure',
       'faststruct.listBranches'
     ];
 
@@ -239,7 +240,7 @@ describe('CommandRegistrationService', () => {
       expect(result).toBe(true);
       
       // Verificar que la lista de comandos esperados esté completa
-      expect(expectedCommands).toHaveLength(24);
+      expect(expectedCommands).toHaveLength(25);
     });
   });
 

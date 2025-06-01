@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Logger } from '../logger';
+import { StructureGeneratorService } from './StructureGeneratorService';
+import { ConfigurationService } from './ConfigurationService';
 
 const execAsync = promisify(exec);
 
@@ -38,6 +40,8 @@ export interface ComparisonOptions {
 
 export class BranchComparisonService {
   private static instance: BranchComparisonService;
+  private structureGenerator: StructureGeneratorService;
+  private configService: ConfigurationService;
 
   public static getInstance(): BranchComparisonService {
     if (!this.instance) {
@@ -48,6 +52,8 @@ export class BranchComparisonService {
 
   private constructor() {
     // Private constructor enforces singleton pattern
+    this.structureGenerator = StructureGeneratorService.getInstance();
+    this.configService = ConfigurationService.getInstance();
   }
 
   /**
@@ -377,5 +383,171 @@ export class BranchComparisonService {
     }
 
     return summary;
+  }
+
+  /**
+   * Generate file structure comparison between two branches.
+   * 
+   * @param sourceBranch - The branch to compare from
+   * @param targetBranch - The branch to compare to (base)
+   * @returns Structure comparison output or null if failed
+   * @author Pablo Contreras
+   * @created 2025/01/31
+   */
+  public async generateStructureComparison(sourceBranch: string, targetBranch: string): Promise<string | null> {
+    try {
+      Logger.functionStart('generateStructureComparison', { sourceBranch, targetBranch });
+
+      if (!vscode.workspace.workspaceFolders) {
+        vscode.window.showWarningMessage('No workspace folder open');
+        return null;
+      }
+
+      const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+      // Get files changed between branches
+      const { stdout: changedFiles } = await execAsync(
+        `git diff --name-only ${targetBranch}...${sourceBranch}`,
+        { cwd: workspaceRoot }
+      );
+
+      if (!changedFiles.trim()) {
+        return this.formatNoChangesOutput(sourceBranch, targetBranch);
+      }
+
+      // Get current configuration
+      const config = await this.configService.getConfiguration();
+      
+      // Build file tree from changed files
+      const fileList = changedFiles.split('\n').filter(f => f.trim());
+      const tree = this.buildFileTree(fileList);
+
+      // Format output
+      let output = '# Estructura de archivos - Comparación entre ramas\n\n';
+      output += `**Rama base:** ${targetBranch}\n`;
+      output += `**Rama con cambios:** ${sourceBranch}\n\n`;
+      
+      // Add exclusion patterns
+      output += this.formatExclusionPatterns(config);
+      
+      // Add file structure
+      output += '## Estructura de archivos:\n```\n';
+      output += this.formatTreeStructure(tree);
+      output += '\n```\n';
+
+      Logger.functionEnd('generateStructureComparison');
+      return output;
+    } catch (error) {
+      Logger.error('Error generating structure comparison', error);
+      vscode.window.showErrorMessage('Failed to generate structure comparison');
+      return null;
+    }
+  }
+
+  /**
+   * Build a tree structure from file paths.
+   * 
+   * @param files - Array of file paths
+   * @returns Tree structure
+   */
+  private buildFileTree(files: string[]): any {
+    const tree: any = {};
+
+    files.forEach(filePath => {
+      const parts = filePath.split('/');
+      let current = tree;
+
+      parts.forEach((part, index) => {
+        if (!current[part]) {
+          current[part] = index === parts.length - 1 ? null : {};
+        }
+        if (index < parts.length - 1) {
+          current = current[part];
+        }
+      });
+    });
+
+    return tree;
+  }
+
+  /**
+   * Format tree structure for display.
+   * 
+   * @param tree - Tree structure
+   * @param prefix - Prefix for indentation
+   * @returns Formatted tree string
+   */
+  private formatTreeStructure(tree: any, prefix: string = ''): string {
+    const entries = Object.entries(tree);
+    let output = '';
+
+    entries.forEach(([name, value], index) => {
+      const isLast = index === entries.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const extension = isLast ? '    ' : '│   ';
+
+      if (value === null) {
+        // File
+        output += `${prefix}${connector}${name}\n`;
+      } else {
+        // Directory
+        output += `${prefix}${connector}📁 ${name}\n`;
+        output += this.formatTreeStructure(value, prefix + extension);
+      }
+    });
+
+    return output;
+  }
+
+  /**
+   * Format exclusion patterns for display.
+   * 
+   * @param config - FastStruct configuration
+   * @returns Formatted exclusion patterns
+   */
+  private formatExclusionPatterns(config: any): string {
+    let output = '## Patrones de exclusión aplicados:\n';
+    
+    const exclusions: string[] = [];
+    
+    // Basic exclusions
+    if (config.exclude?.folders) {
+      exclusions.push(...config.exclude.folders.map((f: string) => `${f}/`));
+    }
+    if (config.exclude?.files) {
+      exclusions.push(...config.exclude.files);
+    }
+    
+    // Advanced exclusions
+    if (config.exclude?.advanced?.patterns) {
+      exclusions.push(...config.exclude.advanced.patterns);
+    }
+
+    if (exclusions.length === 0) {
+      output += '- Ninguno\n';
+    } else {
+      exclusions.forEach(pattern => {
+        output += `- ${pattern}\n`;
+      });
+    }
+
+    output += '\n';
+    return output;
+  }
+
+  /**
+   * Format output when no changes are found.
+   * 
+   * @param sourceBranch - Source branch name
+   * @param targetBranch - Target branch name
+   * @returns Formatted message
+   */
+  private formatNoChangesOutput(sourceBranch: string, targetBranch: string): string {
+    let output = '# Estructura de archivos - Comparación entre ramas\n\n';
+    output += `**Rama base:** ${targetBranch}\n`;
+    output += `**Rama con cambios:** ${sourceBranch}\n\n`;
+    output += '## Resultado:\n';
+    output += 'No se encontraron cambios entre las ramas seleccionadas.\n';
+    return output;
   }
 }

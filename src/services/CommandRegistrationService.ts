@@ -142,6 +142,7 @@ FastStruct Health Check:
       'faststruct.includeFolder',
       'faststruct.compareBranches',
       'faststruct.compareBranchesWithCurrent',
+      'faststruct.compareBranchesStructure',
       'faststruct.listBranches'
     ];
     

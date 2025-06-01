@@ -33,7 +33,8 @@ describe('branchComparisonCommands', () => {
       getAvailableBranches: jest.fn(),
       compareBranches: jest.fn(),
       generateComparisonOutput: jest.fn(),
-      selectBranchesForComparison: jest.fn()
+      selectBranchesForComparison: jest.fn(),
+      generateStructureComparison: jest.fn()
     } as any;
     
     (BranchComparisonService.getInstance as jest.Mock).mockReturnValue(mockBranchComparisonService);
@@ -57,15 +58,17 @@ describe('branchComparisonCommands', () => {
       registerBranchComparisonCommands(mockContext);
 
       // Assert
-      expect(vscode.commands.registerCommand).toHaveBeenCalledTimes(3);
+      expect(vscode.commands.registerCommand).toHaveBeenCalledTimes(4);
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith('faststruct.compareBranchesStructure', expect.any(Function));
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith('faststruct.compareBranches', expect.any(Function));
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith('faststruct.compareBranchesWithCurrent', expect.any(Function));
       expect(vscode.commands.registerCommand).toHaveBeenCalledWith('faststruct.listBranches', expect.any(Function));
+      expect(registeredCommands.has('faststruct.compareBranchesStructure')).toBe(true);
       expect(registeredCommands.has('faststruct.compareBranches')).toBe(true);
       expect(registeredCommands.has('faststruct.compareBranchesWithCurrent')).toBe(true);
       expect(registeredCommands.has('faststruct.listBranches')).toBe(true);
       // Each command registration adds a disposable to subscriptions
-      expect(mockContext.subscriptions.length).toBeGreaterThanOrEqual(3);
+      expect(mockContext.subscriptions.length).toBeGreaterThanOrEqual(4);
     });
   });
 
@@ -350,6 +353,82 @@ describe('branchComparisonCommands', () => {
       expect(Logger.error).toHaveBeenCalledWith('Error in listBranches command', error);
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
         'Failed to list branches: Git error'
+      );
+    });
+  });
+
+  describe('faststruct.compareBranchesStructure', () => {
+    beforeEach(() => {
+      // Clear previous registrations
+      registeredCommands.clear();
+      registerBranchComparisonCommands(mockContext);
+    });
+
+    it('should execute structure comparison successfully', async () => {
+      // Arrange
+      const mockSelection = { sourceBranch: 'feature/test', targetBranch: 'main' };
+      const mockOutput = '# Estructura de archivos - Comparación entre ramas\n...';
+
+      mockBranchComparisonService.selectBranchesForComparison.mockResolvedValue(mockSelection);
+      mockBranchComparisonService.generateStructureComparison = jest.fn().mockResolvedValue(mockOutput);
+
+      const mockDocument = { uri: { fsPath: '/test/structure-comparison.md' } };
+      (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(mockDocument);
+
+      // Act
+      const command = registeredCommands.get('faststruct.compareBranchesStructure');
+      await command!();
+
+      // Assert
+      expect(mockBranchComparisonService.selectBranchesForComparison).toHaveBeenCalled();
+      expect(mockBranchComparisonService.generateStructureComparison).toHaveBeenCalledWith('feature/test', 'main');
+      expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith({
+        content: mockOutput,
+        language: 'markdown'
+      });
+      expect(vscode.window.showTextDocument).toHaveBeenCalledWith(mockDocument);
+    });
+
+    it('should handle cancelled branch selection', async () => {
+      // Arrange
+      mockBranchComparisonService.selectBranchesForComparison.mockResolvedValue(null);
+
+      // Act
+      const command = registeredCommands.get('faststruct.compareBranchesStructure');
+      await command!();
+
+      // Assert
+      expect(mockBranchComparisonService.generateStructureComparison).not.toHaveBeenCalled();
+      expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
+    });
+
+    it('should handle structure generation failure', async () => {
+      // Arrange
+      const mockSelection = { sourceBranch: 'feature/test', targetBranch: 'main' };
+      mockBranchComparisonService.selectBranchesForComparison.mockResolvedValue(mockSelection);
+      mockBranchComparisonService.generateStructureComparison = jest.fn().mockResolvedValue(null);
+
+      // Act
+      const command = registeredCommands.get('faststruct.compareBranchesStructure');
+      await command!();
+
+      // Assert
+      expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully', async () => {
+      // Arrange
+      const error = new Error('Structure comparison error');
+      mockBranchComparisonService.selectBranchesForComparison.mockRejectedValue(error);
+
+      // Act
+      const command = registeredCommands.get('faststruct.compareBranchesStructure');
+      await command!();
+
+      // Assert
+      expect(Logger.error).toHaveBeenCalledWith('Error in compareBranchesStructure command', error);
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'Failed to compare branch structures: Structure comparison error'
       );
     });
   });
