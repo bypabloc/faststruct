@@ -1,5 +1,8 @@
 # FastStruct 📁
 
+[![Tests](https://github.com/bypabloc/faststruct/actions/workflows/test.yml/badge.svg?branch=dev)](https://github.com/bypabloc/faststruct/actions/workflows/test.yml)
+[![PR Checks](https://github.com/bypabloc/faststruct/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/bypabloc/faststruct/actions/workflows/pr-checks.yml)
+
 Una extensión de VS Code para visualizar y documentar rápidamente la estructura de archivos de tu proyecto. FastStruct te ayuda a crear documentación clara y bien formateada de la estructura de directorios de tu proyecto, incluyendo el contenido de los archivos cuando lo necesites.
 
 ![FastStruct Demo](./assets/animated/demo.gif)
