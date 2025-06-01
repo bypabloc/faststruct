@@ -70,12 +70,12 @@ src/**/*.test.js
       expect(result!.folders).toContain('build');
       expect(result!.folders).toContain('.vscode');
       
-      expect(result!.files).toContain('*.log');
-      expect(result!.files).toContain('*.tmp');
       expect(result!.files).toContain('config.local.js');
       expect(result!.files).toContain('secrets.json');
       expect(result!.files).toContain('.idea');
       
+      expect(result!.patterns).toContain('*.log');
+      expect(result!.patterns).toContain('*.tmp');
       expect(result!.patterns).toContain('**/*.backup');
       expect(result!.patterns).toContain('src/**/*.test.js');
     });
@@ -171,8 +171,8 @@ src/**/*.test.js
       const result = (service as any).parseGitignore(content);
       
       expect(result.folders).toEqual(['node_modules', 'dist', '.cache']);
-      expect(result.files).toEqual(['*.log', 'package-lock.json']);
-      expect(result.patterns).toEqual(['**/*.min.js', 'src/**/*.test.js']);
+      expect(result.files).toEqual(['package-lock.json']);
+      expect(result.patterns).toEqual(['*.log', '**/*.min.js', 'src/**/*.test.js']);
     });
 
     it('debe ignorar líneas vacías y comentarios', () => {
@@ -189,8 +189,8 @@ node_modules/
       const result = (service as any).parseGitignore(content);
       
       expect(result.folders).toEqual(['node_modules']);
-      expect(result.files).toEqual(['*.log']);
-      expect(result.patterns).toEqual([]);
+      expect(result.files).toEqual([]);
+      expect(result.patterns).toEqual(['*.log']);
     });
 
     it('debe manejar carpetas con trailing slash', () => {
@@ -238,7 +238,8 @@ dist/
       const result = (service as any).parseGitignore(content);
       
       expect(result.folders).toEqual(['node_modules', 'dist']);
-      expect(result.files).toEqual(['*.log']);
+      expect(result.files).toEqual([]);
+      expect(result.patterns).toEqual(['*.log']);
     });
 
     it('debe manejar espacios en blanco correctamente', () => {
@@ -251,7 +252,8 @@ dist/
       const result = (service as any).parseGitignore(content);
       
       expect(result.folders).toEqual(['node_modules', 'dist']);
-      expect(result.files).toEqual(['*.log']);
+      expect(result.files).toEqual([]);
+      expect(result.patterns).toEqual(['*.log']);
     });
 
     it('debe manejar patrones con paths', () => {

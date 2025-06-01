@@ -42,6 +42,20 @@ describe('CommandRegistrationService', () => {
     jest.clearAllMocks();
     (CommandRegistrationService as any).instance = undefined;
     
+    // Reset mocks to default behavior
+    (registerStructureCommands as jest.Mock).mockReturnValue([
+      { dispose: jest.fn() },
+      { dispose: jest.fn() },
+      { dispose: jest.fn() }
+    ]);
+    (registerExclusionCommands as jest.Mock).mockReturnValue([
+      { dispose: jest.fn() },
+      { dispose: jest.fn() }
+    ]);
+    (registerConfigCommands as jest.Mock).mockReturnValue([
+      { dispose: jest.fn() }
+    ]);
+    
     // Mock del contexto de extensión
     mockContext = {
       subscriptions: [],

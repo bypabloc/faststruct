@@ -9,17 +9,69 @@ import { FileSystemService } from '../../src/services/FileSystemService';
 import { FastStructConfig } from '../../src/types';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PatternMatcher } from '../../src/utils/patternMatcher';
 
 // Mock de fs
 jest.mock('fs');
 
+// Mock PatternMatcher
+jest.mock('../../src/utils/patternMatcher', () => ({
+  PatternMatcher: {
+    getInstance: jest.fn(() => ({
+      shouldExclude: jest.fn(() => false),
+      shouldExcludeContent: jest.fn(() => false)
+    }))
+  }
+}));
+
+// Mock Logger
+jest.mock('../../src/logger', () => ({
+  Logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }
+}));
+
 describe('FileSystemService', () => {
   let service: FileSystemService;
   let mockConfig: FastStructConfig;
+  let mockPatternMatcher: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
     (FileSystemService as any).instance = undefined;
+    
+    // Configure PatternMatcher mock
+    mockPatternMatcher = {
+      shouldExclude: jest.fn((itemPath: string, name: string, type: string) => {
+        if (type === 'directory' && ['node_modules', '.git'].includes(name)) {
+          return true;
+        }
+        if (type === 'file' && (name.endsWith('.log') || name.endsWith('.min.js'))) {
+          return true;
+        }
+        return false;
+      }),
+      shouldExcludeContent: jest.fn(() => false)
+    };
+    
+    (PatternMatcher.getInstance as jest.Mock).mockReturnValue(mockPatternMatcher);
+    
+    // Ensure all fs methods are mocked
+    (fs.readFileSync as jest.Mock).mockReturnValue('test content');
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
+    (fs.statSync as jest.Mock).mockReturnValue({
+      isFile: () => true,
+      isDirectory: () => false,
+      size: 1024,
+      mtime: new Date('2025-01-01')
+    });
+    (fs.openSync as jest.Mock).mockReturnValue(1);
+    (fs.closeSync as jest.Mock).mockReturnValue(undefined);
+    (fs.readSync as jest.Mock).mockReturnValue(0);
+    
     service = FileSystemService.getInstance();
     
     mockConfig = {
@@ -65,7 +117,9 @@ describe('FileSystemService', () => {
         { name: 'README.md', isDirectory: () => false }
       ];
 
-      (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(mockFiles)  // Root directory
+        .mockReturnValueOnce([]);        // utils directory (empty)
 
       const result = service.readDirectoryStructure('/test/dir', mockConfig);
 
@@ -87,7 +141,9 @@ describe('FileSystemService', () => {
         { name: '.git', isDirectory: () => true }
       ];
 
-      (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(mockFiles)  // Root directory
+        .mockReturnValueOnce([]);        // src directory (empty)
 
       const result = service.readDirectoryStructure('/test/dir', mockConfig);
 
@@ -104,7 +160,7 @@ describe('FileSystemService', () => {
         { name: 'error.log', isDirectory: () => false }
       ];
 
-      (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
+      (fs.readdirSync as jest.Mock).mockReturnValueOnce(mockFiles);
 
       const result = service.readDirectoryStructure('/test/dir', mockConfig);
 
@@ -168,7 +224,10 @@ describe('FileSystemService', () => {
         { name: 'a-folder', isDirectory: () => true }
       ];
 
-      (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
+      (fs.readdirSync as jest.Mock)
+        .mockReturnValueOnce(mockFiles)  // Root directory
+        .mockReturnValueOnce([])         // z-folder (empty)
+        .mockReturnValueOnce([]);        // a-folder (empty)
 
       const result = service.readDirectoryStructure('/test/dir', mockConfig);
 
@@ -183,7 +242,11 @@ describe('FileSystemService', () => {
     it('debe leer contenido de archivo de texto', () => {
       (fs.readFileSync as jest.Mock).mockReturnValue('console.log("Hello");');
       (fs.openSync as jest.Mock).mockReturnValue(1);
-      (fs.readSync as jest.Mock).mockReturnValue(8);
+      (fs.readSync as jest.Mock).mockImplementation((fd: any, buffer: any) => {
+        // Fill buffer with text-like content (not binary signatures)
+        buffer.fill(0x20); // Space character
+        return 8;
+      });
       (fs.closeSync as jest.Mock).mockReturnValue(undefined);
 
       const result = service.readFile('/test/file.js');
@@ -212,7 +275,7 @@ describe('FileSystemService', () => {
     it('debe detectar archivos binarios por firma', () => {
       const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
       (fs.openSync as jest.Mock).mockReturnValue(1);
-      (fs.readSync as jest.Mock).mockImplementation((fd, buffer) => {
+      (fs.readSync as jest.Mock).mockImplementation((fd: any, buffer: any) => {
         pngSignature.copy(buffer);
         return 4;
       });
@@ -244,7 +307,7 @@ describe('FileSystemService', () => {
       signatures.forEach(sig => {
         const buffer = Buffer.from(sig.bytes);
         (fs.openSync as jest.Mock).mockReturnValue(1);
-        (fs.readSync as jest.Mock).mockImplementation((fd, buf) => {
+        (fs.readSync as jest.Mock).mockImplementation((fd: any, buf: any) => {
           buffer.copy(buf);
           return sig.bytes.length;
         });
@@ -303,7 +366,11 @@ describe('FileSystemService', () => {
 
       textExtensions.forEach(ext => {
         (fs.openSync as jest.Mock).mockReturnValue(1);
-        (fs.readSync as jest.Mock).mockReturnValue(8);
+        (fs.readSync as jest.Mock).mockImplementation((fd: any, buffer: any) => {
+          // Fill buffer with text-like content (not binary signatures)
+          buffer.fill(0x20); // Space character
+          return 8;
+        });
         (fs.closeSync as jest.Mock).mockReturnValue(undefined);
         
         const result = (service as any).isFileBinary(`/test/file${ext}`);
