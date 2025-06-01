@@ -183,26 +183,26 @@ Logger.functionEnd('nombreFuncion', resultado);
 
 ```bash
 # Instalar dependencias
-npm install
+pnpm install
 
 # Compilar
-npm run compile
+pnpm run compile
 
 # Compilar en modo watch
-npm run watch
+pnpm run watch
 
 # Linting
-npm run lint
+pnpm run lint
 
 # Limpiar y reinstalar
-npm run npm:reinstall
+pnpm run pnpm:reinstall
 ```
 
 ## Publicación
 
 1. Actualizar versión en `package.json`
 2. Actualizar `CHANGELOG.md`
-3. Compilar: `npm run vscode:prepublish`
+3. Compilar: `pnpm run vscode:prepublish`
 4. Empaquetar: `vsce package`
 5. Publicar: `vsce publish`
 

@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 
 try {
   console.log('Running tests...');
-  const result = execSync('npm test', { 
+  const result = execSync('pnpm test', { 
     encoding: 'utf8',
     stdio: 'pipe',
     cwd: '/home/bypablo/projects/bypabloc/faststruct'

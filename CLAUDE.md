@@ -15,9 +15,9 @@ optimizando el contexto para IAs.
 ## Development Commands
 
 # Most used commands
-npm run test      # Run all tests
-npm run watch     # Watch mode for development
-npm run compile   # Compile TypeScript
+pnpm run test      # Run all tests
+pnpm run watch     # Watch mode for development
+pnpm run compile   # Compile TypeScript
 
 ### Build & Compilation
 - `npm run compile` - Compile TypeScript to JavaScript
@@ -25,21 +25,21 @@ npm run compile   # Compile TypeScript
 - `npm run vscode:prepublish` - Prepare for VS Code packaging
 
 ### Testing
-- `npm test` - Run all Jest tests
+- `pnpm test` - Run all Jest tests
 - `node temp/run-single-test.js [test-file]`  # Run single test
-- `npm run test:watch` - Run tests in watch mode
-- `npm run test:coverage` - Run tests with coverage report
-- `npm run test:unit` - Run only unit tests (tests/*.test.ts)
+- `pnpm run test:watch` - Run tests in watch mode
+- `pnpm run test:coverage` - Run tests with coverage report
+- `pnpm run test:unit` - Run only unit tests (tests/*.test.ts)
 
 ### Code Quality
-- `npm run lint` - Run ESLint on TypeScript files
+- `pnpm run lint` - Run ESLint on TypeScript files
 
 ### Maintenance
-- `npm run npm:reinstall` - Clean reinstall (removes node_modules, out, package-lock)
+- `pnpm run pnpm:reinstall` - Clean reinstall (removes node_modules, out, pnpm-lock.yaml)
 
 # Build & Package
-npm run package   # Create VSIX package
-npm run vscode:prepublish  # Prepare for publishing
+pnpm run package   # Create VSIX package
+pnpm run vscode:prepublish  # Prepare for publishing
 
 ## Architecture Overview
 

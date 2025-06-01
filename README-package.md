@@ -1,4 +1,4 @@
-npm install -g @vscode/vsce
+pnpm install -g @vscode/vsce
 
 vsce package
 

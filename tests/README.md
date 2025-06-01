@@ -23,26 +23,26 @@ tests/
 
 ### Todos los tests
 ```bash
-npm test
+pnpm test
 ```
 
 ### Tests en modo watch
 ```bash
-npm run test:watch
+pnpm run test:watch
 ```
 
 ### Tests con cobertura
 ```bash
-npm run test:coverage
+pnpm run test:coverage
 ```
 
 ### Tests específicos
 ```bash
 # Solo tests de servicios
-npm test -- tests/services
+pnpm test -- tests/services
 
 # Solo un archivo específico
-npm test -- tests/services/ConfigurationService.test.ts
+pnpm test -- tests/services/ConfigurationService.test.ts
 ```
 
 ## Cobertura
@@ -50,7 +50,7 @@ npm test -- tests/services/ConfigurationService.test.ts
 La cobertura de código se genera en la carpeta `coverage/`. Para ver el reporte HTML:
 
 ```bash
-npm run test:coverage
+pnpm run test:coverage
 open coverage/index.html
 ```
 
@@ -142,8 +142,8 @@ Para debuggear tests en VS Code:
 
 Asegúrate de compilar el código antes de ejecutar tests:
 ```bash
-npm run compile
-npm test
+pnpm run compile
+pnpm test
 ```
 
 ### Los mocks no funcionan
@@ -154,7 +154,7 @@ Verifica que `jest.clearAllMocks()` se ejecute en `beforeEach`.
 
 Usa `--runInBand` para ejecutar tests en serie:
 ```bash
-npm test -- --runInBand
+pnpm test -- --runInBand
 ```
 
 ## Mantenimiento
