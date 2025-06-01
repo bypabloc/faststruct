@@ -49,9 +49,9 @@ describe('ExclusionManager', () => {
     
     mockConfigService = {
       getConfiguration: jest.fn().mockReturnValue(mockConfig),
-      saveConfiguration: jest.fn().mockResolvedValue(undefined),
+      saveConfiguration: jest.fn(() => Promise.resolve(undefined)),
       getDefaultConfig: jest.fn(),
-      isDebugEnabled: jest.fn(),
+      isDebugEnabled: jest.fn().mockReturnValue(false),
       inspectConfiguration: jest.fn()
     } as any;
     
@@ -80,9 +80,9 @@ describe('ExclusionManager', () => {
 
     it('debe preguntar si guardar globalmente cuando no hay workspace', async () => {
       (vscode.workspace.workspaceFolders as any) = undefined;
-      (vscode.window.showWarningMessage as jest.Mock).mockResolvedValue('Sí');
+      (vscode.window.showWarningMessage as jest.Mock).mockImplementation(() => Promise.resolve('Sí'));
       
-      await manager.addExclusion('Archivo', '*.tmp', 'exclude.files');
+      await manager.addExclusion('Extensión de archivo', '*.tmp', 'exclude.files');
       
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
         'No hay un workspace abierto. ¿Deseas guardar la exclusión globalmente?',
@@ -98,9 +98,9 @@ describe('ExclusionManager', () => {
 
     it('debe cancelar si el usuario no acepta guardar globalmente', async () => {
       (vscode.workspace.workspaceFolders as any) = undefined;
-      (vscode.window.showWarningMessage as jest.Mock).mockResolvedValue('No');
+      (vscode.window.showWarningMessage as jest.Mock).mockImplementation(() => Promise.resolve('No'));
       
-      await manager.addExclusion('Archivo', '*.tmp', 'exclude.files');
+      await manager.addExclusion('Extensión de archivo', '*.tmp', 'exclude.files');
       
       expect(mockConfigService.saveConfiguration).not.toHaveBeenCalled();
     });
@@ -111,7 +111,7 @@ describe('ExclusionManager', () => {
       }];
       (fs.existsSync as jest.Mock).mockReturnValue(false);
       
-      await manager.addExclusion('Carpeta', 'dist', 'exclude.folders');
+      await manager.addExclusion('Carpeta específica', 'dist', 'exclude.folders');
       
       expect(fs.mkdirSync).toHaveBeenCalledWith(
         path.join('/test/workspace', '.vscode'),
@@ -124,7 +124,7 @@ describe('ExclusionManager', () => {
         uri: { fsPath: '/test/workspace' }
       }];
       
-      await manager.addExclusion('Carpeta', 'node_modules', 'exclude.folders');
+      await manager.addExclusion('Carpeta específica', 'node_modules', 'exclude.folders');
       
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
         "FastStruct: 'node_modules' ya está en la lista de exclusiones"
@@ -137,10 +137,10 @@ describe('ExclusionManager', () => {
         uri: { fsPath: '/test/workspace' }
       }];
       
-      await manager.addExclusion('Archivo', 'secret.txt', 'exclude.files');
+      await manager.addExclusion('Archivo específico', 'secret.txt', 'exclude.files');
       
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        "FastStruct: Archivo 'secret.txt' agregado a exclusiones del proyecto"
+        "FastStruct: Archivo específico 'secret.txt' agregado a exclusiones del proyecto"
       );
     });
 
@@ -150,7 +150,7 @@ describe('ExclusionManager', () => {
       }];
       mockConfig.quickExclude.showNotifications = false;
       
-      await manager.addExclusion('Archivo', 'test.log', 'exclude.files');
+      await manager.addExclusion('Archivo específico', 'test.log', 'exclude.files');
       
       expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
     });
@@ -160,7 +160,7 @@ describe('ExclusionManager', () => {
         uri: { fsPath: '/test/workspace' }
       }];
       
-      await manager.addExclusion('Patrón', '**/*.test.js', 'exclude.advanced.patterns');
+      await manager.addExclusion('Patrón de archivo', '**/*.test.js', 'exclude.advanced.patterns');
       
       expect(mockConfigService.saveConfiguration).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -178,9 +178,9 @@ describe('ExclusionManager', () => {
       (vscode.workspace.workspaceFolders as any) = [{
         uri: { fsPath: '/test/workspace' }
       }];
-      mockConfigService.saveConfiguration.mockRejectedValue(new Error('Save failed'));
+      mockConfigService.saveConfiguration = jest.fn(() => Promise.reject(new Error('Save failed')));
       
-      await manager.addExclusion('Archivo', 'error.txt', 'exclude.files');
+      await manager.addExclusion('Archivo específico', 'error.txt', 'exclude.files');
       
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
         'Error al agregar exclusión: Save failed'
@@ -243,7 +243,7 @@ describe('ExclusionManager', () => {
 
     it('debe manejar errores al remover', async () => {
       mockConfig.exclude.folders = ['node_modules'];
-      mockConfigService.saveConfiguration.mockRejectedValue(new Error('Remove failed'));
+      mockConfigService.saveConfiguration = jest.fn(() => Promise.reject(new Error('Remove failed')));
       
       await manager.removeExclusion('node_modules', 'exclude.folders');
       
@@ -272,7 +272,7 @@ describe('ExclusionManager', () => {
       };
       
       const mockDocument = { getText: jest.fn() };
-      (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(mockDocument);
+      (vscode.workspace.openTextDocument as jest.Mock).mockImplementation(() => Promise.resolve(mockDocument));
       
       await manager.showExclusions();
       
@@ -309,7 +309,7 @@ describe('ExclusionManager', () => {
       
       await manager.showExclusions();
       
-      const callArgs = (vscode.workspace.openTextDocument as jest.Mock).mock.calls[0][0];
+      const callArgs = (vscode.workspace.openTextDocument as jest.Mock).mock.calls[0][0] as any;
       expect(callArgs.content).toContain('*Ninguna*');
     });
   });

@@ -117,7 +117,7 @@ describe('CommandRegistrationService', () => {
       service.registerAllCommands(mockContext);
       
       // Simular lista de comandos registrados
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue([
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue([
         'faststruct.createStructure',
         'faststruct.openSettings',
         'faststruct.excludeFile',
@@ -130,7 +130,7 @@ describe('CommandRegistrationService', () => {
       
       expect(healthCheckCall).toBeDefined();
       
-      const healthCheckCallback = healthCheckCall[1];
+      const healthCheckCallback = healthCheckCall![1] as () => Promise<void>;
       await healthCheckCallback();
       
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
@@ -171,7 +171,7 @@ describe('CommandRegistrationService', () => {
     ];
 
     it('debe retornar true cuando todos los comandos están registrados', async () => {
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue([
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue([
         ...expectedCommands,
         'other.command',
         'another.command'
@@ -185,7 +185,7 @@ describe('CommandRegistrationService', () => {
     it('debe retornar false cuando faltan comandos', async () => {
       // Simular que faltan algunos comandos
       const incompleteCommands = expectedCommands.slice(0, -3);
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue(incompleteCommands);
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue(incompleteCommands);
       
       const result = await service.verifyCommandRegistration();
       
@@ -197,7 +197,7 @@ describe('CommandRegistrationService', () => {
       
       // Simular que falta un comando específico
       const commandsWithoutOne = expectedCommands.filter(cmd => cmd !== 'faststruct.openSettings');
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue(commandsWithoutOne);
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue(commandsWithoutOne);
       
       await service.verifyCommandRegistration();
       
@@ -206,7 +206,7 @@ describe('CommandRegistrationService', () => {
     });
 
     it('debe manejar lista vacía de comandos', async () => {
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue([]);
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue([]);
       
       const result = await service.verifyCommandRegistration();
       
@@ -214,7 +214,7 @@ describe('CommandRegistrationService', () => {
     });
 
     it('debe verificar todos los comandos esperados', async () => {
-      (vscode.commands.getCommands as jest.Mock).mockResolvedValue(expectedCommands);
+      (vscode.commands.getCommands as jest.Mock<() => Promise<string[]>>).mockResolvedValue(expectedCommands);
       
       const result = await service.verifyCommandRegistration();
       

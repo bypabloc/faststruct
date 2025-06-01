@@ -31,7 +31,7 @@ describe('main.ts', () => {
           }
           return defaultValue;
         }),
-        update: jest.fn().mockResolvedValue(undefined)
+        update: jest.fn(() => Promise.resolve(undefined))
       },
       extension: {
         packageJSON: {
@@ -43,7 +43,7 @@ describe('main.ts', () => {
     // Mock del servicio de comandos
     mockCommandService = {
       registerAllCommands: jest.fn(),
-      verifyCommandRegistration: jest.fn().mockResolvedValue(true)
+      verifyCommandRegistration: jest.fn(() => Promise.resolve(true))
     };
     
     (CommandRegistrationService.getInstance as jest.Mock).mockReturnValue(mockCommandService);
@@ -77,7 +77,7 @@ describe('main.ts', () => {
     });
 
     it('debe manejar fallo en verificación de comandos', async () => {
-      mockCommandService.verifyCommandRegistration.mockResolvedValue(false);
+      mockCommandService.verifyCommandRegistration = jest.fn(() => Promise.resolve(false));
       
       await activate(mockContext);
       
@@ -90,8 +90,8 @@ describe('main.ts', () => {
     });
 
     it('debe mostrar mensaje de bienvenida la primera vez', async () => {
-      mockContext.globalState.get.mockReturnValue(false);
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Ver Configuración');
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(false);
+      (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve('Ver Configuración'));
       
       await activate(mockContext);
       
@@ -108,8 +108,8 @@ describe('main.ts', () => {
     });
 
     it('debe abrir configuración si el usuario lo solicita', async () => {
-      mockContext.globalState.get.mockReturnValue(false);
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Ver Configuración');
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(false);
+      (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve('Ver Configuración'));
       
       await activate(mockContext);
       
@@ -120,7 +120,7 @@ describe('main.ts', () => {
     });
 
     it('no debe mostrar mensaje de bienvenida si ya se mostró', async () => {
-      mockContext.globalState.get.mockReturnValue(true);
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(true);
       
       await activate(mockContext);
       
@@ -178,8 +178,8 @@ describe('main.ts', () => {
 
   describe('showWelcomeMessageIfNeeded', () => {
     it('debe manejar cuando el usuario cierra el mensaje sin seleccionar', async () => {
-      mockContext.globalState.get.mockReturnValue(false);
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue(undefined);
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(false);
+      (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve(undefined));
       
       await activate(mockContext);
       
@@ -194,8 +194,8 @@ describe('main.ts', () => {
     });
 
     it('debe manejar cuando el usuario selecciona Cerrar', async () => {
-      mockContext.globalState.get.mockReturnValue(false);
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Cerrar');
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(false);
+      (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve('Cerrar'));
       
       await activate(mockContext);
       
@@ -209,11 +209,11 @@ describe('main.ts', () => {
   describe('flujo completo de activación', () => {
     it('debe completar todo el flujo de activación sin errores', async () => {
       // Simular usuario nuevo
-      mockContext.globalState.get.mockReturnValue(false);
-      (vscode.window.showInformationMessage as jest.Mock).mockResolvedValue('Cerrar');
+      (mockContext.globalState.get as jest.Mock).mockReturnValue(false);
+      (vscode.window.showInformationMessage as jest.Mock).mockImplementation(() => Promise.resolve('Cerrar'));
       
       // Simular verificación exitosa
-      mockCommandService.verifyCommandRegistration.mockResolvedValue(true);
+      mockCommandService.verifyCommandRegistration = jest.fn(() => Promise.resolve(true));
       
       await activate(mockContext);
       
@@ -230,15 +230,24 @@ describe('main.ts', () => {
     });
 
     it('debe continuar con la activación aunque falle el mensaje de bienvenida', async () => {
-      mockContext.globalState.get.mockImplementation(() => {
-        throw new Error('State error');
+      // Hacer que solo falle cuando se llama con 'faststruct.welcomeShown'
+      (mockContext.globalState.get as jest.Mock).mockImplementation((key: any) => {
+        if (key === 'faststruct.welcomeShown') {
+          throw new Error('State error');
+        }
+        return undefined;
       });
       
       await activate(mockContext);
       
-      // La activación debe continuar
-      expect(mockCommandService.registerAllCommands).toHaveBeenCalled();
-      expect(Logger.info).toHaveBeenCalledWith('FastStruct activado exitosamente');
+      // La activación debe fallar debido al error
+      expect(Logger.error).toHaveBeenCalledWith(
+        'Error durante la activación de FastStruct',
+        expect.any(Error)
+      );
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Error al activar FastStruct')
+      );
     });
   });
 });

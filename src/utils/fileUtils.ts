@@ -15,7 +15,8 @@
  */
 export function formatFileSize(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let size = bytes;
+  const isNegative = bytes < 0;
+  let size = Math.abs(bytes);
   let unitIndex = 0;
   
   while (size >= 1024 && unitIndex < units.length - 1) {
@@ -23,7 +24,7 @@ export function formatFileSize(bytes: number): string {
     unitIndex++;
   }
   
-  return `${size.toFixed(1)} ${units[unitIndex]}`;
+  return `${isNegative ? '-' : ''}${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
 /**

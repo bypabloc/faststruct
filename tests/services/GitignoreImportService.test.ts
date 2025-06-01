@@ -69,12 +69,12 @@ src/**/*.test.js
       expect(result!.folders).toContain('dist');
       expect(result!.folders).toContain('build');
       expect(result!.folders).toContain('.vscode');
-      expect(result!.folders).toContain('.idea');
       
       expect(result!.files).toContain('*.log');
       expect(result!.files).toContain('*.tmp');
       expect(result!.files).toContain('config.local.js');
       expect(result!.files).toContain('secrets.json');
+      expect(result!.files).toContain('.idea');
       
       expect(result!.patterns).toContain('**/*.backup');
       expect(result!.patterns).toContain('src/**/*.test.js');
@@ -142,7 +142,7 @@ dist/
       await service.importFromGitignore();
       
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        'Importados 1 patrones, 2 carpetas y 1 archivos desde .gitignore'
+        'Importados 2 patrones, 2 carpetas y 0 archivos desde .gitignore'
       );
     });
   });

@@ -16,7 +16,9 @@ import * as path from 'path';
  * @created 2025/01/31
  */
 export function normalizePath(filePath: string): string {
-  return path.normalize(filePath).replace(/\\/g, '/');
+  return path.normalize(filePath)
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/'); // Collapse multiple slashes
 }
 
 /**
@@ -79,5 +81,5 @@ export function getParentDirectory(filePath: string): string {
  */
 export function isPathInside(parentPath: string, childPath: string): boolean {
   const relative = path.relative(parentPath, childPath);
-  return !relative.startsWith('..') && !path.isAbsolute(relative);
+  return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
 }

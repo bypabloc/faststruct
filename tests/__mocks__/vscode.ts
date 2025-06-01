@@ -6,6 +6,14 @@
  */
 import { jest } from '@jest/globals';
 
+// Mock console.log si no está definido
+if (typeof console.log !== 'function') {
+  global.console = {
+    ...global.console,
+    log: jest.fn(),
+  };
+}
+
 const vscode = {
   // Uri mock
   Uri: {
@@ -33,13 +41,13 @@ const vscode = {
 
   // Window mock
   window: {
-    showInformationMessage: (jest.fn() as any).mockResolvedValue(undefined),
-    showWarningMessage: (jest.fn() as any).mockResolvedValue(undefined),
-    showErrorMessage: (jest.fn() as any).mockResolvedValue(undefined),
-    showInputBox: (jest.fn() as any).mockResolvedValue(undefined),
-    showQuickPick: (jest.fn() as any).mockResolvedValue(undefined),
-    showSaveDialog: (jest.fn() as any).mockResolvedValue(undefined),
-    showOpenDialog: (jest.fn() as any).mockResolvedValue(undefined),
+    showInformationMessage: jest.fn(() => Promise.resolve(undefined)),
+    showWarningMessage: jest.fn(() => Promise.resolve(undefined)),
+    showErrorMessage: jest.fn(() => Promise.resolve(undefined)),
+    showInputBox: jest.fn(() => Promise.resolve(undefined)),
+    showQuickPick: jest.fn(() => Promise.resolve(undefined)),
+    showSaveDialog: jest.fn(() => Promise.resolve(undefined)),
+    showOpenDialog: jest.fn(() => Promise.resolve(undefined)),
     createOutputChannel: jest.fn(() => ({
       appendLine: jest.fn(),
       append: jest.fn(),
@@ -61,11 +69,11 @@ const vscode = {
       dispose: jest.fn(),
     })),
     activeTextEditor: undefined,
-    showTextDocument: (jest.fn() as any).mockResolvedValue({
+    showTextDocument: jest.fn(() => Promise.resolve({
       document: {
         getText: jest.fn(() => ''),
       },
-    }),
+    })) as any,
   },
 
   // Workspace mock
@@ -100,7 +108,7 @@ const vscode = {
         }
         return defaultValue;
       }),
-      update: (jest.fn() as any).mockResolvedValue(undefined),
+      update: jest.fn(() => Promise.resolve(undefined)),
       inspect: jest.fn(() => ({
         globalValue: undefined,
         workspaceValue: undefined,
@@ -125,14 +133,14 @@ const vscode = {
       name: 'test-workspace',
       index: 0,
     })),
-    openTextDocument: (jest.fn() as any).mockResolvedValue({
+    openTextDocument: jest.fn(() => Promise.resolve({
       getText: jest.fn(() => ''),
       languageId: 'plaintext',
       uri: { fsPath: '/test/file.txt' },
-    }),
+    })) as any,
     fs: {
-      readFile: (jest.fn() as any).mockResolvedValue(Buffer.from('')),
-      writeFile: (jest.fn() as any).mockResolvedValue(undefined),
+      readFile: jest.fn(() => Promise.resolve(Buffer.from(''))),
+      writeFile: jest.fn(() => Promise.resolve(undefined)),
     },
   },
 
@@ -141,12 +149,12 @@ const vscode = {
     registerCommand: jest.fn((_command: string, _callback: Function) => ({
       dispose: jest.fn(),
     })),
-    executeCommand: (jest.fn() as any).mockResolvedValue(undefined),
-    getCommands: (jest.fn() as any).mockResolvedValue([
+    executeCommand: jest.fn(() => Promise.resolve(undefined)),
+    getCommands: jest.fn(() => Promise.resolve([
       'faststruct.createStructure',
       'faststruct.createStructureContext',
       'faststruct.openSettings',
-    ]),
+    ])) as any,
   },
 
   // Configuration targets
@@ -171,10 +179,19 @@ const vscode = {
     workspaceState = {
       get: jest.fn(),
       update: jest.fn(),
+      keys: jest.fn(() => Promise.resolve([])),
     };
     globalState = {
       get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
-      update: (jest.fn() as any).mockResolvedValue(undefined),
+      update: jest.fn(() => Promise.resolve(undefined)),
+      keys: jest.fn(() => Promise.resolve([])),
+      setKeysForSync: jest.fn(),
+    };
+    secrets = {
+      get: jest.fn(() => Promise.resolve(undefined)),
+      store: jest.fn(() => Promise.resolve(undefined)),
+      delete: jest.fn(() => Promise.resolve(undefined)),
+      onDidChange: jest.fn(),
     };
     extensionPath = '/test/extension';
     extensionUri = {
@@ -182,10 +199,35 @@ const vscode = {
       path: '/test/extension',
       scheme: 'file',
     };
+    environmentVariableCollection = {
+      persistent: true,
+      replace: jest.fn(),
+      append: jest.fn(),
+      prepend: jest.fn(),
+      get: jest.fn(),
+      forEach: jest.fn(),
+      delete: jest.fn(),
+      clear: jest.fn(),
+    };
+    asAbsolutePath = jest.fn((relativePath: string) => `/test/extension/${relativePath}`);
+    storageUri = { fsPath: '/test/storage', path: '/test/storage', scheme: 'file' };
+    storagePath = '/test/storage';
+    globalStorageUri = { fsPath: '/test/global-storage', path: '/test/global-storage', scheme: 'file' };
+    globalStoragePath = '/test/global-storage';
+    logUri = { fsPath: '/test/logs', path: '/test/logs', scheme: 'file' };
+    logPath = '/test/logs';
+    extensionMode = 3;
     extension = {
+      id: 'test.faststruct',
+      extensionUri: { fsPath: '/test/extension', path: '/test/extension', scheme: 'file' },
+      extensionPath: '/test/extension',
+      isActive: true,
       packageJSON: {
         version: '0.0.12',
       },
+      exports: undefined,
+      activate: jest.fn(),
+      extensionKind: 1,
     };
   },
 
@@ -199,5 +241,4 @@ const vscode = {
 };
 
 // Export para que TypeScript reconozca el módulo
-export default vscode;
-export { vscode };
+export = vscode;

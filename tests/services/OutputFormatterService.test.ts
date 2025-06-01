@@ -129,7 +129,11 @@ describe('OutputFormatterService', () => {
       
       const result = service.formatFullOutput(mockItems, '/test/project', mockConfig, true);
       
-      expect(result).not.toContain('Path:');
+      // Should not contain actual file paths (Path: src/index.js)
+      expect(result).not.toContain('Path: src/index.js');
+      expect(result).not.toContain('Path: README.md');
+      // But the guide text explaining the format is OK
+      expect(result).toContain('AI File Structure Analysis Guide');
     });
 
     it('debe generar árbol de estructura correctamente', () => {

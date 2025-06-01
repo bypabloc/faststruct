@@ -130,7 +130,7 @@ export class PatternMatcher {
     
     // Verificar patrones de contenido
     for (const pattern of config.excludeContent.patterns) {
-      const mm = new Minimatch(pattern);
+      const mm = new Minimatch(pattern, { dot: true });
       if (mm.match(relativePath) || mm.match(name)) {
         if (config.debug) {
           Logger.debug(`Contenido excluido por patrón: ${pattern}`);
@@ -162,7 +162,7 @@ export class PatternMatcher {
     return patterns.some(pattern => {
       // Si el patrón contiene caracteres especiales, usar minimatch
       if (pattern.includes('*') || pattern.includes('?') || pattern.includes('[')) {
-        const mm = new Minimatch(pattern);
+        const mm = new Minimatch(pattern, { dot: true });
         return mm.match(name);
       }
       // Si no, comparación exacta
@@ -193,15 +193,19 @@ export class PatternMatcher {
     
     const normalizedItemPath = path
       .normalize(path.relative(basePath, itemPath))
-      .replace(/\\/g, '/');
+      .replace(/\\/g, '/')
+      .replace(/\/$/, ''); // Remove trailing slash
     
     return specificPaths.some(specificPath => {
       const normalizedSpecificPath = path
         .normalize(specificPath)
-        .replace(/\\/g, '/');
+        .replace(/\\/g, '/')
+        .replace(/\/$/, ''); // Remove trailing slash
       
       return normalizedItemPath === normalizedSpecificPath ||
-             normalizedItemPath.startsWith(normalizedSpecificPath + '/');
+             normalizedItemPath.startsWith(normalizedSpecificPath + '/') ||
+             normalizedItemPath.endsWith('/' + normalizedSpecificPath) ||
+             normalizedItemPath.includes('/' + normalizedSpecificPath + '/');
     });
   }
   
@@ -237,7 +241,7 @@ export class PatternMatcher {
    */
   private matchesAdvancedPatterns(relativePath: string, patterns: string[]): boolean {
     return patterns.some(pattern => {
-      const mm = new Minimatch(pattern);
+      const mm = new Minimatch(pattern, { dot: true });
       return mm.match(relativePath);
     });
   }
@@ -264,7 +268,7 @@ export class PatternMatcher {
       
       switch (type) {
         case 'glob':
-          const mm = new Minimatch(pattern);
+          const mm = new Minimatch(pattern, { dot: true });
           shouldMatch = mm.match(file) || mm.match(path.basename(file));
           break;
           

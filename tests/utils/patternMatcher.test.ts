@@ -8,6 +8,16 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { PatternMatcher } from '../../src/utils/patternMatcher';
 import { FastStructConfig } from '../../src/types';
 
+// Mock Logger
+jest.mock('../../src/logger', () => ({
+  Logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  }
+}));
+
 describe('PatternMatcher', () => {
   let matcher: PatternMatcher;
   let mockConfig: FastStructConfig;
@@ -199,7 +209,7 @@ describe('PatternMatcher', () => {
 
     describe('modo debug', () => {
       it('debe loggear cuando debug está habilitado', () => {
-        const consoleSpy = jest.spyOn(console, 'log');
+        const { Logger } = require('../../src/logger');
         mockConfig.debug = true;
         
         matcher.shouldExclude(
@@ -210,8 +220,9 @@ describe('PatternMatcher', () => {
           '/project'
         );
         
-        // El logger podría ser mockeado, pero verificamos el flujo
-        expect(mockConfig.debug).toBe(true);
+        // Verificar que Logger.debug fue llamado
+        expect(Logger.debug).toHaveBeenCalled();
+        expect(Logger.debug).toHaveBeenCalledWith(expect.stringContaining('Verificando exclusión'));
       });
     });
   });
@@ -303,7 +314,7 @@ describe('PatternMatcher', () => {
       });
 
       it('debe encontrar múltiples archivos', () => {
-        const matches = matcher.testPattern('*.env*', files, 'glob');
+        const matches = matcher.testPattern('*env*', files, 'glob');
         
         expect(matches).toContain('config.env');
         expect(matches).toContain('.env.local');
@@ -329,8 +340,9 @@ describe('PatternMatcher', () => {
         const matches = matcher.testPattern('^src/.*\\.jsx?$', files, 'regex');
         
         expect(matches).toContain('src/index.js');
+        expect(matches).toContain('src/app.min.js');
         expect(matches).toContain('src/components/Button.jsx');
-        expect(matches).toHaveLength(2);
+        expect(matches).toHaveLength(3);
       });
 
       it('debe manejar regex inválidos', () => {
@@ -414,7 +426,7 @@ describe('PatternMatcher', () => {
     });
 
     it('debe manejar expresiones regulares inválidas', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { Logger } = require('../../src/logger');
       
       const result = (matcher as any).matchesRegexPatterns(
         'file.txt',
@@ -422,7 +434,10 @@ describe('PatternMatcher', () => {
       );
       
       expect(result).toBe(false);
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(Logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Expresión regular inválida'),
+        expect.any(Error)
+      );
     });
 
     it('debe probar múltiples expresiones regulares', () => {

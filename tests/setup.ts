@@ -10,7 +10,7 @@ import { jest } from '@jest/globals';
 jest.setTimeout(10000);
 
 // Mock de vscode global
-(global as any).vscode = require('./__mocks__/vscode').vscode;
+(global as any).vscode = require('./__mocks__/vscode');
 
 // Limpiar mocks después de cada test
 afterEach(() => {

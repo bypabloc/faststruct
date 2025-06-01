@@ -87,9 +87,14 @@ describe('ConfigurationService', () => {
       const testConfig = service.getDefaultConfig();
       testConfig.debug = true;
 
-      const mockUpdate = jest.fn().mockResolvedValue(undefined);
+      const mockUpdate = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn(),
+        get: jest.fn((key: string, defaultValue?: any) => {
+          if (key === 'config') {
+            return { debug: false };
+          }
+          return defaultValue;
+        }),
         update: mockUpdate,
         inspect: jest.fn()
       });
@@ -106,9 +111,14 @@ describe('ConfigurationService', () => {
     it('debe permitir guardar globalmente', async () => {
       const testConfig = service.getDefaultConfig();
       
-      const mockUpdate = jest.fn().mockResolvedValue(undefined);
+      const mockUpdate = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn(),
+        get: jest.fn((key: string, defaultValue?: any) => {
+          if (key === 'config') {
+            return { debug: false };
+          }
+          return defaultValue;
+        }),
         update: mockUpdate,
         inspect: jest.fn()
       });
@@ -123,9 +133,14 @@ describe('ConfigurationService', () => {
     });
 
     it('debe manejar errores al guardar', async () => {
-      const mockUpdate = jest.fn().mockRejectedValue(new Error('Save failed'));
+      const mockUpdate = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('Save failed'));
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
-        get: jest.fn(),
+        get: jest.fn((key: string, defaultValue?: any) => {
+          if (key === 'config') {
+            return { debug: false };
+          }
+          return defaultValue;
+        }),
         update: mockUpdate,
         inspect: jest.fn()
       });
@@ -147,7 +162,7 @@ describe('ConfigurationService', () => {
       expect(defaultConfig.exclude.advanced).toBeDefined();
       expect(defaultConfig.excludeContent).toBeDefined();
       expect(defaultConfig.output).toBeDefined();
-      expect(defaultConfig.output.includeContent).toBe(true);
+      expect(defaultConfig.output?.includeContent).toBe(true);
     });
 
     it('debe incluir todas las carpetas por defecto esperadas', () => {
@@ -158,7 +173,7 @@ describe('ConfigurationService', () => {
       ];
       
       expectedFolders.forEach(folder => {
-        expect(defaultConfig.exclude.folders).toContain(folder);
+        expect(defaultConfig.exclude?.folders).toContain(folder);
       });
     });
   });
@@ -284,8 +299,8 @@ describe('ConfigurationService', () => {
       const merged = (service as any).mergeWithDefaults(userConfig);
       
       expect(merged.debug).toBe(false);
-      expect(merged.output.includeContent).toBe(false);
-      expect(merged.output.includeEmptyFolders).toBe(false);
+      expect(merged.output?.includeContent).toBe(false);
+      expect(merged.output?.includeEmptyFolders).toBe(false);
     });
   });
 });
