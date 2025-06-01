@@ -4,6 +4,8 @@ import { promisify } from 'util';
 import { Logger } from '../logger';
 import { StructureGeneratorService } from './StructureGeneratorService';
 import { ConfigurationService } from './ConfigurationService';
+import { PatternMatcher } from '../utils/patternMatcher';
+import * as path from 'path';
 
 const execAsync = promisify(exec);
 
@@ -42,6 +44,7 @@ export class BranchComparisonService {
   private static instance: BranchComparisonService;
   private structureGenerator: StructureGeneratorService;
   private configService: ConfigurationService;
+  private patternMatcher: PatternMatcher;
 
   public static getInstance(): BranchComparisonService {
     if (!this.instance) {
@@ -54,6 +57,7 @@ export class BranchComparisonService {
     // Private constructor enforces singleton pattern
     this.structureGenerator = StructureGeneratorService.getInstance();
     this.configService = ConfigurationService.getInstance();
+    this.patternMatcher = PatternMatcher.getInstance();
   }
 
   /**
@@ -73,7 +77,10 @@ export class BranchComparisonService {
       }
 
       const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
-      const { stdout } = await execAsync('git branch', { cwd: workspaceRoot });
+      const { stdout } = await execAsync('git branch', { 
+        cwd: workspaceRoot,
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      });
 
       const branches = stdout
         .split('\n')
@@ -120,19 +127,28 @@ export class BranchComparisonService {
       // Get file changes
       const { stdout: nameStatus } = await execAsync(
         `git diff --name-status ${targetBranch}...${sourceBranch}`,
-        { cwd: workspaceRoot }
+        { 
+          cwd: workspaceRoot,
+          maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+        }
       );
 
       // Get statistics
       const { stdout: stat } = await execAsync(
         `git diff --stat ${targetBranch}...${sourceBranch}`,
-        { cwd: workspaceRoot }
+        { 
+          cwd: workspaceRoot,
+          maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+        }
       );
 
       // Get full diff
       const { stdout: diffContent } = await execAsync(
         `git diff ${targetBranch}...${sourceBranch}`,
-        { cwd: workspaceRoot }
+        { 
+          cwd: workspaceRoot,
+          maxBuffer: 1024 * 1024 * 100 // 100MB buffer for large diffs
+        }
       );
 
       // Parse file changes
@@ -408,7 +424,10 @@ export class BranchComparisonService {
       // Get files changed between branches
       const { stdout: changedFiles } = await execAsync(
         `git diff --name-only ${targetBranch}...${sourceBranch}`,
-        { cwd: workspaceRoot }
+        { 
+          cwd: workspaceRoot,
+          maxBuffer: 1024 * 1024 * 50 // 50MB buffer
+        }
       );
 
       if (!changedFiles.trim()) {
@@ -418,8 +437,33 @@ export class BranchComparisonService {
       // Get current configuration
       const config = await this.configService.getConfiguration();
       
-      // Build file tree from changed files
-      const fileList = changedFiles.split('\n').filter(f => f.trim());
+      // Filter files based on exclusion patterns
+      const allFiles = changedFiles.split('\n').filter(f => f.trim());
+      const fileList = [];
+      
+      for (const filePath of allFiles) {
+        const fullPath = path.join(workspaceRoot, filePath);
+        const fileName = path.basename(filePath);
+        
+        // Check if file should be excluded
+        const shouldExclude = this.patternMatcher.shouldExclude(
+          fullPath,
+          fileName,
+          'file', // Assume files for git diff
+          config,
+          workspaceRoot
+        );
+        
+        if (!shouldExclude) {
+          fileList.push(filePath);
+        }
+      }
+
+      if (fileList.length === 0) {
+        return this.formatNoChangesWithExclusionsOutput(sourceBranch, targetBranch, config);
+      }
+
+      // Build file tree from filtered files
       const tree = this.buildFileTree(fileList);
 
       // Format output
@@ -548,6 +592,28 @@ export class BranchComparisonService {
     output += `**Rama con cambios:** ${sourceBranch}\n\n`;
     output += '## Resultado:\n';
     output += 'No se encontraron cambios entre las ramas seleccionadas.\n';
+    return output;
+  }
+
+  /**
+   * Format output when all changes were excluded by filters.
+   * 
+   * @param sourceBranch - Source branch name
+   * @param targetBranch - Target branch name
+   * @param config - FastStruct configuration
+   * @returns Formatted message
+   */
+  private formatNoChangesWithExclusionsOutput(sourceBranch: string, targetBranch: string, config: any): string {
+    let output = '# Estructura de archivos - Comparación entre ramas\n\n';
+    output += `**Rama base:** ${targetBranch}\n`;
+    output += `**Rama con cambios:** ${sourceBranch}\n\n`;
+    
+    // Add exclusion patterns
+    output += this.formatExclusionPatterns(config);
+    
+    output += '## Resultado:\n';
+    output += 'Todos los archivos modificados fueron excluidos por los patrones de exclusión configurados.\n';
+    output += '\n*Nota: Puedes ajustar los patrones de exclusión en la configuración de FastStruct.*\n';
     return output;
   }
 }
