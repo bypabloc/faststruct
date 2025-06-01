@@ -113,7 +113,11 @@ describe('branchComparisonCommands', () => {
       // Assert
       expect(mockBranchComparisonService.selectBranchesForComparison).toHaveBeenCalled();
       expect(mockBranchComparisonService.compareBranches).toHaveBeenCalledWith('feature/test', 'main');
-      expect(mockBranchComparisonService.generateComparisonOutput).toHaveBeenCalledWith(mockComparison);
+      expect(mockBranchComparisonService.generateComparisonOutput).toHaveBeenCalledWith(mockComparison, {
+        maxFilesAnalyzed: 1, // mockComparison.filesChanged.length
+        maxLinesPerFile: 100,
+        debugMode: true
+      });
       expect(vscode.workspace.openTextDocument).toHaveBeenCalledWith({ 
         content: mockOutput, 
         language: 'markdown' 

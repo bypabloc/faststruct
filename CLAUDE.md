@@ -170,7 +170,50 @@ if (!uri) return;
 - Tight coupling between modules
 
 ## 🔄 Current Development Focus
-Working on branch comparison feature for code review context generation.
+Branch comparison feature completed with full file analysis and commit history.
+
+### Branch Comparison Features:
+- **Complete File Analysis**: Shows all modified files by default (configurable)
+- **Commit History**: Displays commits unique to the source branch (max 20)
+- **Detailed Diffs**: Full git diff content with syntax highlighting
+- **File Content**: Shows complete content for new files, deleted file content
+- **Configurable Limits**: Control max files analyzed and lines per file
+- **Smart Truncation**: Prevents overwhelming output while maintaining visibility
+
+### Usage Options:
+```typescript
+// Show all files (default behavior)
+generateComparisonOutput(comparison, {
+  maxFilesAnalyzed: comparison.filesChanged.length,
+  maxLinesPerFile: 100,
+  debugMode: true // Enable debug mode for troubleshooting
+});
+
+// Limited view for large changes
+generateComparisonOutput(comparison, {
+  maxFilesAnalyzed: 10,
+  maxLinesPerFile: 50,
+  showDiff: true,
+  debugMode: false
+});
+```
+
+### Diff Resolution Features:
+- **Multi-stage diff attempts**: Standard diff → Unified diff → Manual comparison → Whitespace-only detection
+- **Robust error handling**: Fallback mechanisms when git diff fails
+- **Debug mode**: Detailed logging and diagnostics for troubleshooting
+- **Manual diff generation**: Custom diff when git commands fail
+- **Whitespace detection**: Identifies whitespace-only changes
+- **File existence validation**: Verifies files exist in both branches
+
+### Smart File Analysis:
+- **Rename/Move Detection**: Automatically detects when files are moved or renamed
+- **Contextual Sections**: Different section titles based on file change type:
+  - 📂 **Moved/Renamed**: "Archivo movido desde X hasta Y" with similarity percentage
+  - 🆕 **New Files**: "Contenido del archivo nuevo" (no "differences")
+  - 🗑️ **Deleted Files**: "Contenido del archivo eliminado" 
+  - 📝 **Modified Files**: "Diferencias" with git diff content
+- **Tree Structure Enhancement**: Shows rename paths in file tree (e.g., `newname.txt ← oldname.txt`)
 
 ## 📝 Important Context
 - Extension uses TypeScript with strict mode

@@ -72,8 +72,12 @@ export function registerBranchComparisonCommands(context: vscode.ExtensionContex
           return;
         }
 
-        // Generate output
-        const output = await branchComparisonService.generateComparisonOutput(comparison);
+        // Generate output with options to show all files
+        const output = await branchComparisonService.generateComparisonOutput(comparison, {
+          maxFilesAnalyzed: comparison.filesChanged.length, // Show all files
+          maxLinesPerFile: 100, // Reasonable line limit per file
+          debugMode: true // Enable debug mode to help diagnose diff issues
+        });
 
         // Show result in new document
         const document = await vscode.workspace.openTextDocument({
@@ -141,8 +145,12 @@ export function registerBranchComparisonCommands(context: vscode.ExtensionContex
           return;
         }
 
-        // Generate output
-        const output = await branchComparisonService.generateComparisonOutput(comparison);
+        // Generate output with options to show all files
+        const output = await branchComparisonService.generateComparisonOutput(comparison, {
+          maxFilesAnalyzed: comparison.filesChanged.length, // Show all files
+          maxLinesPerFile: 100, // Reasonable line limit per file
+          debugMode: true // Enable debug mode to help diagnose diff issues
+        });
 
         // Show result in new document
         const document = await vscode.workspace.openTextDocument({

@@ -192,9 +192,46 @@ index abcdef..789012 100644
             stdout: 'A\tsrc/newFile.ts\nM\tsrc/existingFile.ts', 
             stderr: '' 
           });
-        } else if (command.includes('--stat')) {
+        } else if (command.includes('git show') && command.includes('src/newFile.ts') && command.includes('wc -l')) {
+          // Count lines for new file
+          callback(null, { stdout: '5', stderr: '' });
+        } else if (command.includes('--numstat') && command.includes('src/newFile.ts')) {
+          // Get numstat for new file
+          callback(null, { stdout: '5\t0\tsrc/newFile.ts', stderr: '' });
+        } else if (command.includes('--numstat') && command.includes('src/existingFile.ts')) {
+          // Get numstat for modified file
+          callback(null, { stdout: '4\t0\tsrc/existingFile.ts', stderr: '' });
+        } else if (command.includes('src/newFile.ts')) {
+          // Diff for new file
           callback(null, { 
-            stdout: ' src/newFile.ts      | 5 +++++\n src/existingFile.ts | 4 ++++\n 2 files changed, 9 insertions(+)', 
+            stdout: `diff --git a/src/newFile.ts b/src/newFile.ts
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/src/newFile.ts
+@@ -0,0 +1,5 @@
++export class NewClass {
++  constructor() {
++    console.log('New feature');
++  }
++}`, 
+            stderr: '' 
+          });
+        } else if (command.includes('src/existingFile.ts')) {
+          // Diff for existing file
+          callback(null, { 
+            stdout: `diff --git a/src/existingFile.ts b/src/existingFile.ts
+index abcdef..789012 100644
+--- a/src/existingFile.ts
++++ b/src/existingFile.ts
+@@ -10,3 +10,7 @@ export class ExistingClass {
+     console.log('Existing method');
+   }
+ }
++
++export function newFunction() {
++  return 'New functionality';
++}`, 
             stderr: '' 
           });
         } else {
@@ -281,6 +318,14 @@ index abcdef..789012 100644
   });
 
   describe('generateComparisonOutput', () => {
+    const mockWorkspaceFolder = {
+      uri: { fsPath: '/test/workspace' }
+    };
+
+    beforeEach(() => {
+      (vscode.workspace.workspaceFolders as any) = [mockWorkspaceFolder];
+    });
+
     it('should generate formatted output for branch comparison', async () => {
       // Arrange
       const comparisonData = {
@@ -360,6 +405,68 @@ index abcdef..789012 100644
 
       // Assert
       expect(output).toContain('No se encontraron cambios entre las ramas seleccionadas');
+    });
+
+    it('should include commit history and detailed file analysis', async () => {
+      // Arrange
+      const comparisonData = {
+        sourceBranch: 'feature/test',
+        targetBranch: 'main',
+        filesChanged: [{
+          path: 'test.ts',
+          status: 'modified' as const,
+          additions: 1,
+          deletions: 1
+        }],
+        summary: {
+          totalFiles: 1,
+          additions: 1,
+          deletions: 1,
+          filesAdded: 0,
+          filesModified: 1,
+          filesDeleted: 0
+        },
+        diffContent: 'diff --git a/test.ts b/test.ts\n...'
+      };
+
+      // Mock git commands for commit history and file analysis
+      mockExec.mockImplementation((command: any, options: any, callback?: any) => {
+        if (typeof options === 'function') {
+          callback = options;
+          options = {};
+        }
+        
+        if (command.includes('git log')) {
+          callback(null, { 
+            stdout: 'abc123 feat: add new feature\ndef456 fix: resolve bug', 
+            stderr: '' 
+          });
+        } else if (command.includes('git diff')) {
+          callback(null, { 
+            stdout: '@@ -1,3 +1,3 @@\n-old line\n+new line', 
+            stderr: '' 
+          });
+        } else if (command.includes('git show')) {
+          callback(null, { 
+            stdout: 'console.log("test file content");', 
+            stderr: '' 
+          });
+        } else {
+          callback(null, { stdout: '', stderr: '' });
+        }
+        return {} as any;
+      });
+
+      // Act
+      const output = await service.generateComparisonOutput(comparisonData);
+
+      // Assert
+      expect(output).toContain('## HISTORIAL DE COMMITS (nuevos en rama comparar)');
+      expect(output).toContain('## ANÁLISIS DETALLADO DE ARCHIVOS');
+      expect(output).toContain('**Total de commits nuevos:** 2');
+      expect(output).toContain('**abc123** - feat: add new feature');
+      expect(output).toContain('### 📝 test.ts');
+      expect(output).toContain('**Estado:** Modificado');
     });
 
     it('should include diff content when showDiff option is true', async () => {
