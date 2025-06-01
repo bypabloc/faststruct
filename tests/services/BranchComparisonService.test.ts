@@ -273,7 +273,13 @@ index abcdef..789012 100644
           callback = options;
           options = {};
         }
-        callback(new Error('fatal: bad revision'), null);
+        
+        // Simulate branch verification failure for the invalid branch
+        if (command.includes(`git rev-parse --verify ${invalidBranch}`)) {
+          callback(new Error('fatal: bad revision'), null);
+        } else {
+          callback(null, { stdout: 'abc123', stderr: '' });
+        }
         return {} as any;
       });
 
@@ -284,7 +290,7 @@ index abcdef..789012 100644
       expect(result).toBeNull();
       expect(Logger.error).toHaveBeenCalled();
       expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        'Failed to compare branches. Make sure both branches exist.'
+        "Branch 'non-existent-branch' does not exist"
       );
     });
 

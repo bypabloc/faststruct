@@ -144,6 +144,24 @@ export class BranchComparisonService {
 
       const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
 
+      // Validate source branch exists
+      try {
+        await execAsync(`git rev-parse --verify ${sourceBranch}`, { cwd: workspaceRoot });
+      } catch (error) {
+        vscode.window.showErrorMessage(`Branch '${sourceBranch}' does not exist`);
+        Logger.error(`Branch '${sourceBranch}' does not exist`, error);
+        return null;
+      }
+
+      // Validate target branch exists
+      try {
+        await execAsync(`git rev-parse --verify ${targetBranch}`, { cwd: workspaceRoot });
+      } catch (error) {
+        vscode.window.showErrorMessage(`Branch '${targetBranch}' does not exist`);
+        Logger.error(`Branch '${targetBranch}' does not exist`, error);
+        return null;
+      }
+
       // Get file changes with rename detection
       const { stdout: nameStatus } = await execAsync(
         `git diff --find-renames --name-status ${targetBranch}...${sourceBranch}`,
@@ -162,9 +180,10 @@ export class BranchComparisonService {
         }
       );
 
-      // Parse file changes using only name-status and real diff analysis
-      const allFilesChanged = await this.parseFileChangesFromDiff(
+      // Parse file changes using only name-status and extract stats from the complete diff
+      const allFilesChanged = await this.parseFileChangesFromCompleteDiff(
         nameStatus,
+        diffContent,
         targetBranch,
         sourceBranch,
         workspaceRoot
@@ -372,6 +391,181 @@ export class BranchComparisonService {
   }
 
   /**
+   * Parse file changes from complete diff content and extract accurate statistics per file.
+   * 
+   * @param nameStatus - Git diff --name-status output
+   * @param diffContent - Complete git diff output
+   * @param targetBranch - Target branch name
+   * @param sourceBranch - Source branch name
+   * @param workspaceRoot - Workspace root path
+   * @returns Array of file changes with accurate statistics
+   * @author Pablo Contreras
+   * @created 2025/06/01
+   */
+  private async parseFileChangesFromCompleteDiff(
+    nameStatus: string,
+    diffContent: string,
+    targetBranch: string,
+    sourceBranch: string,
+    workspaceRoot: string
+  ): Promise<FileChange[]> {
+    const fileChanges: FileChange[] = [];
+    const statusMap: Record<string, "added" | "modified" | "deleted" | "renamed"> = {
+      A: "added",
+      M: "modified",
+      D: "deleted",
+    };
+
+    // Parse name-status output to get file list and basic info
+    const nameStatusLines = nameStatus
+      .split("\n")
+      .filter((line) => line.trim());
+
+    // Extract statistics from complete diff content
+    const fileStatsMap = this.extractFileStatsFromCompleteDiff(diffContent);
+    
+    Logger.debug(`[parseFileChangesFromCompleteDiff] Found stats for ${Object.keys(fileStatsMap).length} files in complete diff`);
+
+    for (const line of nameStatusLines) {
+      const parts = line.split("\t");
+      const status = parts[0];
+      let filePath: string;
+      let oldPath: string | undefined;
+      let similarity: number | undefined;
+      let fileStatus: "added" | "modified" | "deleted" | "renamed";
+
+      if (status.startsWith("R")) {
+        // Renamed file: R100    old/path    new/path
+        const renameMatch = status.match(/R(\d+)/);
+        similarity = renameMatch ? parseInt(renameMatch[1], 10) : undefined;
+        oldPath = parts[1];
+        filePath = parts[2];
+        fileStatus = "renamed";
+      } else if (status.startsWith("C")) {
+        // Copied file: treat as added for simplicity
+        filePath = parts[2];
+        fileStatus = "added";
+      } else if (statusMap[status]) {
+        // Regular status
+        filePath = parts.slice(1).join("\t");
+        fileStatus = statusMap[status];
+      } else {
+        continue; // Skip unknown status
+      }
+
+      if (!filePath) continue;
+
+      // Get statistics from the complete diff
+      const stats = fileStatsMap[filePath] || { additions: 0, deletions: 0 };
+      let additions = stats.additions;
+      let deletions = stats.deletions;
+
+      // Apply fallbacks for special cases
+      if (additions === 0 && deletions === 0) {
+        if (fileStatus === "added") {
+          // For new files, try to count lines from source branch
+          try {
+            const { stdout: fileContent } = await execAsync(
+              `git show ${sourceBranch}:"${filePath}" | wc -l`,
+              { cwd: workspaceRoot, maxBuffer: 1024 * 1024 * 50 }
+            );
+            additions = parseInt(fileContent.trim(), 10) || 0;
+          } catch {
+            additions = 1; // Minimum fallback
+          }
+        } else if (fileStatus === "deleted") {
+          // For deleted files, try to count lines from target branch
+          try {
+            const { stdout: fileContent } = await execAsync(
+              `git show ${targetBranch}:"${filePath}" | wc -l`,
+              { cwd: workspaceRoot, maxBuffer: 1024 * 1024 * 50 }
+            );
+            deletions = parseInt(fileContent.trim(), 10) || 0;
+          } catch {
+            deletions = 1; // Minimum fallback
+          }
+        } else if (fileStatus === "modified") {
+          // For modified files, force minimum 1 change if stats are 0,0
+          Logger.warn(`[CRITICAL] Modified file ${filePath} has 0,0 stats - forcing minimum`);
+          additions = 1;
+        }
+      }
+
+      Logger.debug(`[parseFileChangesFromCompleteDiff] ${filePath} (${fileStatus}): +${additions}, -${deletions}`);
+
+      fileChanges.push({
+        path: filePath,
+        status: fileStatus,
+        additions,
+        deletions,
+        oldPath,
+        similarity,
+      });
+    }
+
+    return fileChanges;
+  }
+
+  /**
+   * Extract file statistics from complete diff content.
+   * 
+   * @param diffContent - Complete git diff output
+   * @returns Map of file path to statistics
+   */
+  private extractFileStatsFromCompleteDiff(diffContent: string): Record<string, { additions: number; deletions: number }> {
+    const fileStats: Record<string, { additions: number; deletions: number }> = {};
+    const lines = diffContent.split("\n");
+    let currentFile = "";
+    let additions = 0;
+    let deletions = 0;
+    let inHunk = false;
+
+    for (const line of lines) {
+      // Detect new file diff
+      if (line.startsWith("diff --git")) {
+        // Save previous file stats
+        if (currentFile) {
+          fileStats[currentFile] = { additions, deletions };
+        }
+        
+        // Extract file path from diff --git a/path b/path
+        const match = line.match(/diff --git a\/(.+?) b\/(.+?)$/);
+        if (match) {
+          currentFile = match[2]; // Use the "new" file path
+          additions = 0;
+          deletions = 0;
+          inHunk = false;
+          Logger.debug(`[extractFileStatsFromCompleteDiff] Processing file: ${currentFile}`);
+        }
+      }
+      // Detect hunk start
+      else if (line.startsWith("@@")) {
+        inHunk = true;
+      }
+      // Count additions and deletions in hunks
+      else if (inHunk) {
+        if (line.startsWith("+") && !line.startsWith("+++")) {
+          additions++;
+        } else if (line.startsWith("-") && !line.startsWith("---")) {
+          deletions++;
+        }
+      }
+    }
+
+    // Save last file stats
+    if (currentFile) {
+      fileStats[currentFile] = { additions, deletions };
+    }
+
+    Logger.debug(`[extractFileStatsFromCompleteDiff] Extracted stats for ${Object.keys(fileStats).length} files`);
+    Object.entries(fileStats).forEach(([file, stats]) => {
+      Logger.debug(`[extractFileStatsFromCompleteDiff] ${file}: +${stats.additions}, -${stats.deletions}`);
+    });
+
+    return fileStats;
+  }
+
+  /**
    * Parse file changes from git diff output using real diff analysis.
    *
    * @param nameStatus - Git diff --name-status output
@@ -428,138 +622,104 @@ export class BranchComparisonService {
 
       if (!filePath) continue;
 
-      // Get real diff statistics for this file
+      // Get real diff statistics for this file using diff content analysis
       let additions = 0;
       let deletions = 0;
 
       try {
-        // Para archivos eliminados, necesitamos obtener el diff de forma diferente
-        if (fileStatus === "deleted") {
-          // Para archivos eliminados, contar todas las líneas del archivo como eliminaciones
-          try {
-            const { stdout: fileContent } = await execAsync(
-              `git show ${targetBranch}:"${filePath}" | wc -l`,
-              {
-                cwd: workspaceRoot,
-                maxBuffer: 1024 * 1024 * 50,
-              }
-            );
-            deletions = parseInt(fileContent.trim(), 10) || 0;
-            additions = 0;
-          } catch (error) {
-            // Si falla, intentar con git diff --numstat
-            try {
-              const { stdout: numstat } = await execAsync(
-                `git diff --numstat ${targetBranch}..${sourceBranch} -- "${filePath}"`,
-                {
-                  cwd: workspaceRoot,
-                  maxBuffer: 1024 * 1024 * 10,
-                }
-              );
-              if (numstat.trim()) {
-                const [add, del] = numstat.trim().split("\t").map(n => parseInt(n, 10) || 0);
-                additions = add;
-                deletions = del;
-              }
-            } catch {
-              deletions = 0;
-            }
+        // Always use diff content analysis instead of numstat for more reliable results
+        Logger.debug(`[DIFF ATTEMPT] Trying to get diff for ${filePath} (${fileStatus})`);
+        const diffCommand = `git diff ${targetBranch}...${sourceBranch} -- "${filePath}"`;
+        Logger.debug(`[DIFF COMMAND] ${diffCommand}`);
+        
+        const { stdout: fileDiff } = await execAsync(
+          diffCommand,
+          {
+            cwd: workspaceRoot,
+            maxBuffer: 1024 * 1024 * 50,
           }
-        } else if (fileStatus === "added") {
-          // Para archivos nuevos, contar todas las líneas como adiciones
-          try {
-            const { stdout: fileContent } = await execAsync(
-              `git show ${sourceBranch}:"${filePath}" | wc -l`,
-              {
-                cwd: workspaceRoot,
-                maxBuffer: 1024 * 1024 * 50,
-              }
-            );
-            additions = parseInt(fileContent.trim(), 10) || 0;
-            deletions = 0;
-          } catch (error) {
-            // Si falla, intentar con git diff --numstat
-            try {
-              const { stdout: numstat } = await execAsync(
-                `git diff --numstat ${targetBranch}..${sourceBranch} -- "${filePath}"`,
-                {
-                  cwd: workspaceRoot,
-                  maxBuffer: 1024 * 1024 * 10,
-                }
-              );
-              if (numstat.trim()) {
-                const [add, del] = numstat.trim().split("\t").map(n => parseInt(n, 10) || 0);
-                additions = add;
-                deletions = del;
-              }
-            } catch {
-              additions = 0;
-            }
+        );
+
+        if (fileDiff.trim()) {
+          Logger.debug(`[DIFF DEBUG] File: ${filePath}, diff length: ${fileDiff.length}`);
+          Logger.debug(`[DIFF DEBUG] First 500 chars: ${fileDiff.substring(0, 500)}`);
+          
+          const diffStats = this.analyzeDiffStatistics(fileDiff);
+          additions = diffStats.additions;
+          deletions = diffStats.deletions;
+          
+          Logger.debug(`[DIFF DEBUG] Analyzed stats for ${filePath}: +${additions}, -${deletions}`);
+          
+          // If we still get 0,0 for a file that should have changes, force a minimum
+          if (fileStatus === "modified" && additions === 0 && deletions === 0) {
+            Logger.warn(`[CRITICAL] Modified file ${filePath} analyzed to 0,0 - forcing minimum stats`);
+            Logger.debug(`[CRITICAL] Full diff content: ${fileDiff}`);
+            // For modified files, assume at least 1 change if git says it's modified
+            additions = 1;
           }
         } else {
-          // Para archivos modificados o renombrados, usar git diff --numstat que es más confiable
-          try {
-            const { stdout: numstat } = await execAsync(
-              `git diff --numstat ${targetBranch}..${sourceBranch} -- "${filePath}"`,
-              {
-                cwd: workspaceRoot,
-                maxBuffer: 1024 * 1024 * 10,
-              }
-            );
-
-            if (numstat.trim()) {
-              const [add, del] = numstat.trim().split("\t").map(n => parseInt(n, 10) || 0);
-              additions = add;
-              deletions = del;
-            } else if (fileStatus === "renamed" && oldPath) {
-              // Si es un archivo renombrado sin cambios de contenido, intentar con el path anterior
-              try {
-                const { stdout: renameNumstat } = await execAsync(
-                  `git diff --numstat ${targetBranch}..${sourceBranch} -- "${oldPath}" "${filePath}"`,
-                  {
-                    cwd: workspaceRoot,
-                    maxBuffer: 1024 * 1024 * 10,
-                  }
-                );
-
-                if (renameNumstat.trim()) {
-                  const lines = renameNumstat.trim().split("\n");
-                  // Sumar las estadísticas de ambos archivos si hay múltiples líneas
-                  lines.forEach(line => {
-                    const [add, del] = line.split("\t").map(n => parseInt(n, 10) || 0);
-                    additions += add;
-                    deletions += del;
-                  });
-                }
-              } catch (error) {
-                Logger.debug(`No se pudo obtener numstat para archivo renombrado ${filePath}`, error);
-              }
-            }
-          } catch (error) {
-            Logger.warn(`Failed to get numstat for ${filePath}`, error);
-
-            // Como último recurso, intentar obtener el diff completo y contarlo manualmente
+          Logger.warn(`[DIFF EMPTY] File ${filePath} (${fileStatus}) returned empty diff - length: ${fileDiff.length}`);
+          // Handle special cases where diff might be empty
+          if (fileStatus === "added") {
+            // For new files, count lines from source branch
             try {
-              const { stdout: fileDiff } = await execAsync(
-                `git diff ${targetBranch}..${sourceBranch} -- "${filePath}"`,
+              const { stdout: fileContent } = await execAsync(
+                `git show ${sourceBranch}:"${filePath}" | wc -l`,
                 {
                   cwd: workspaceRoot,
                   maxBuffer: 1024 * 1024 * 50,
                 }
               );
-
-              if (fileDiff.trim()) {
-                const realStats = this.analyzeDiffStatistics(fileDiff);
-                additions = realStats.additions;
-                deletions = realStats.deletions;
-              }
-            } catch (diffError) {
-              Logger.debug(`Fallback diff también falló para ${filePath}`, diffError);
+              additions = parseInt(fileContent.trim(), 10) || 0;
+              deletions = 0;
+            } catch {
+              additions = 0;
             }
+          } else if (fileStatus === "deleted") {
+            // For deleted files, count lines from target branch
+            try {
+              const { stdout: fileContent } = await execAsync(
+                `git show ${targetBranch}:"${filePath}" | wc -l`,
+                {
+                  cwd: workspaceRoot,
+                  maxBuffer: 1024 * 1024 * 50,
+                }
+              );
+              deletions = parseInt(fileContent.trim(), 10) || 0;
+              additions = 0;
+            } catch {
+              deletions = 0;
+            }
+          } else if (fileStatus === "renamed") {
+            // For renamed files without content changes
+            additions = 0;
+            deletions = 0;
           }
         }
       } catch (error) {
-        Logger.warn(`Failed to get real diff for ${filePath}`, error);
+        Logger.warn(`Failed to get diff for ${filePath}`, error);
+        // Fallback: try to get basic stats for special file types
+        if (fileStatus === "added") {
+          try {
+            const { stdout: fileContent } = await execAsync(
+              `git show ${sourceBranch}:"${filePath}" | wc -l`,
+              { cwd: workspaceRoot, maxBuffer: 1024 * 1024 * 50 }
+            );
+            additions = parseInt(fileContent.trim(), 10) || 0;
+          } catch {
+            /* ignore */
+          }
+        } else if (fileStatus === "deleted") {
+          try {
+            const { stdout: fileContent } = await execAsync(
+              `git show ${targetBranch}:"${filePath}" | wc -l`,
+              { cwd: workspaceRoot, maxBuffer: 1024 * 1024 * 50 }
+            );
+            deletions = parseInt(fileContent.trim(), 10) || 0;
+          } catch {
+            /* ignore */
+          }
+        }
       }
 
       fileChanges.push({
@@ -766,6 +926,32 @@ export class BranchComparisonService {
       }
 
       const workspaceRoot = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+      // Validate source branch exists
+      try {
+        await execAsync(`git rev-parse --verify ${sourceBranch}`, {
+          cwd: workspaceRoot,
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Branch '${sourceBranch}' does not exist`
+        );
+        Logger.error(`Branch '${sourceBranch}' does not exist`, error);
+        return null;
+      }
+
+      // Validate target branch exists
+      try {
+        await execAsync(`git rev-parse --verify ${targetBranch}`, {
+          cwd: workspaceRoot,
+        });
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `Branch '${targetBranch}' does not exist`
+        );
+        Logger.error(`Branch '${targetBranch}' does not exist`, error);
+        return null;
+      }
 
       // Get files changed between branches
       const { stdout: changedFiles } = await execAsync(
@@ -1208,6 +1394,29 @@ export class BranchComparisonService {
   }
 
   /**
+   * Extract hunk information from diff content.
+   * 
+   * @param diffContent - Git diff content
+   * @returns Array of hunk information
+   */
+  private extractHunkInfo(diffContent: string): Array<{oldStart: number, oldCount: number, newStart: number, newCount: number}> {
+    const hunkPattern = /@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/g;
+    const hunks = [];
+    let match;
+    
+    while ((match = hunkPattern.exec(diffContent)) !== null) {
+      hunks.push({
+        oldStart: parseInt(match[1], 10),
+        oldCount: parseInt(match[2] || '1', 10),
+        newStart: parseInt(match[3], 10),
+        newCount: parseInt(match[4] || '1', 10)
+      });
+    }
+    
+    return hunks;
+  }
+
+  /**
    * Generate analysis for a single file change.
    *
    * @param fileChange - File change information
@@ -1273,7 +1482,40 @@ export class BranchComparisonService {
         output += `**Movido desde:** ${oldPath}\n`;
         output += `**Movido hasta:** ${filePath}\n`;
       }
-      output += `**Cambios:** +${additions} líneas, -${deletions} líneas\n\n`;
+      output += `**Cambios:** +${additions} líneas, -${deletions} líneas\n`;
+
+      // Add hunk information for modified/renamed files
+      if (
+        status === "modified" ||
+        (status === "renamed" && (additions > 0 || deletions > 0))
+      ) {
+        try {
+          const { stdout: diffContent } = await execAsync(
+            `git diff ${targetBranch}...${sourceBranch} -- "${filePath}"`,
+            {
+              cwd: workspaceRoot,
+              maxBuffer: 1024 * 1024 * 50,
+            }
+          );
+
+          if (diffContent.trim()) {
+            const hunks = this.extractHunkInfo(diffContent);
+            if (hunks.length > 0) {
+              const hunkSummary = hunks
+                .map(
+                  (h) =>
+                    `@@ -${h.oldStart},${h.oldCount} +${h.newStart},${h.newCount} @@`
+                )
+                .join(", ");
+              output += `**Hunks:** ${hunkSummary}\n`;
+            }
+          }
+        } catch (error) {
+          // If we can't get diff, just continue without hunk info
+        }
+      }
+
+      output += "\n";
 
       if (status === "deleted") {
         output += sectionTitle + "\n\n";
@@ -1526,11 +1768,18 @@ export class BranchComparisonService {
     let additions = 0;
     let deletions = 0;
     let inDiffSection = false;
+    let hunkCount = 0;
 
-    for (const line of lines) {
-      // Detectar inicio de sección de diff
+    Logger.debug(`[analyzeDiffStatistics] Analyzing ${lines.length} lines of diff`);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Detectar inicio de sección de diff (hunks)
       if (line.startsWith("@@")) {
         inDiffSection = true;
+        hunkCount++;
+        Logger.debug(`[analyzeDiffStatistics] Found hunk ${hunkCount}: ${line.substring(0, 100)}`);
         continue;
       }
 
@@ -1549,6 +1798,24 @@ export class BranchComparisonService {
           continue;
         }
       }
+    }
+
+    Logger.debug(`[analyzeDiffStatistics] Found ${hunkCount} hunks, +${additions}, -${deletions}`);
+
+    // If we found no hunks but have content, try a different approach
+    if (hunkCount === 0 && diffContent.trim().length > 0) {
+      Logger.warn(`[analyzeDiffStatistics] No hunks found but diff has content, trying fallback analysis`);
+      
+      // Fallback: count all + and - lines, even without hunk context
+      for (const line of lines) {
+        if (line.startsWith("+") && !line.startsWith("+++")) {
+          additions++;
+        } else if (line.startsWith("-") && !line.startsWith("---")) {
+          deletions++;
+        }
+      }
+      
+      Logger.debug(`[analyzeDiffStatistics] Fallback analysis: +${additions}, -${deletions}`);
     }
 
     return { additions, deletions };
