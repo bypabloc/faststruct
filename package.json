@@ -15,6 +15,11 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint . --ext .ts,.tsx",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest --testPathPattern=tests/.*\\.test\\.ts$",
+    "pretest": "npm run compile",
     "npm:install": "rm -rf node_modules && rm -rf out && npm cache clean --force && npm install",
     "npm:reinstall": "rm -rf node_modules && rm -rf out && rm -f package-lock.json && npm cache clean --force && npm install"
   },
@@ -467,7 +472,11 @@
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",
     "eslint": "^9.27.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "@jest/globals": "^29.7.0"
   },
   "icon": "assets/images/icon.png"
 }
