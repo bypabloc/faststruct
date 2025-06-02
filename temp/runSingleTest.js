@@ -2,7 +2,7 @@ const { execSync } = require('child_process');
 
 const testFile = process.argv[2];
 if (!testFile) {
-  console.error('Usage: node run-single-test.js <test-file>');
+  console.error('Usage: node runSingleTest.js <test-file>');
   process.exit(1);
 }
 

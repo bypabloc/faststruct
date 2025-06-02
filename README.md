@@ -304,6 +304,17 @@ Puedes asignar atajos de teclado personalizados a los comandos de FastStruct:
 
 - Visual Studio Code v1.94.0 o superior
 
+## Convenciones de Nomenclatura 📝
+
+Este proyecto sigue las siguientes convenciones para nombres de archivos:
+
+- **Archivos TypeScript**: `camelCase.ts` o `PascalCase.ts`
+  - Servicios y clases: `PascalCase.ts` (ej: `ConfigurationService.ts`)
+  - Utilidades y funciones: `camelCase.ts` (ej: `fileUtils.ts`)
+- **Archivos de prueba**: `camelCase.test.ts` o `PascalCase.test.ts`
+- **Archivos JavaScript**: `camelCase.js`
+- **No usar guiones (-) o guiones bajos (_)** en nombres de archivos
+
 ## Solución de Problemas 🔧
 
 ### La extensión no genera estructura

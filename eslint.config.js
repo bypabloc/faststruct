@@ -2,6 +2,13 @@ const js = require('@eslint/js');
 const typescript = require('@typescript-eslint/eslint-plugin');
 const typescriptParser = require('@typescript-eslint/parser');
 
+/**
+ * FastStruct Naming Conventions:
+ * - TypeScript files: camelCase.ts or PascalCase.ts
+ * - Test files: camelCase.test.ts or PascalCase.test.ts
+ * - JavaScript files: camelCase.js
+ * - No hyphens or underscores in filenames
+ */
 module.exports = [
   {
     ignores: ['out/**', 'dist/**', 'node_modules/**', '*.d.ts', 'coverage/**', '.eslintrc.js'],

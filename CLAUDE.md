@@ -26,7 +26,7 @@ pnpm run compile   # Compile TypeScript
 
 ### Testing
 - `pnpm test` - Run all Jest tests
-- `node temp/run-single-test.js [test-file]`  # Run single test
+- `node temp/runSingleTest.js [test-file]`  # Run single test
 - `pnpm run test:watch` - Run tests in watch mode
 - `pnpm run test:coverage` - Run tests with coverage report
 - `pnpm run test:unit` - Run only unit tests (tests/*.test.ts)
