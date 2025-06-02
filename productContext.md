@@ -33,8 +33,9 @@ la calidad de las interacciones con IA.
 1. **Core**: Generación básica con exclusiones (✓)
 2. **Enhanced**: UI de configuración avanzada (✓)
 3. **Power**: Exclusiones rápidas por contexto (✓)
-4. **Next**: Comparación de ramas para PRs (🚧)
-5. **Future**: Integración directa con IAs
+4. **Branch Comparison**: Comparación de ramas para PRs (✓)
+5. **Next**: Optimización de rendimiento para repos grandes (🚧)
+6. **Future**: Integración directa con IAs
 
 ## Competitive Landscape
 - **Directory Tree Generator**: Básico, sin exclusiones avanzadas
@@ -44,6 +45,7 @@ la calidad de las interacciones con IA.
 ## Product Evolution
 - v0.1: MVP básico
 - v0.5: UI webview agregada
-- v0.11: Sistema modular SOLID (actual)
-- v1.0: Feature de comparación de ramas
+- v0.11: Sistema modular SOLID
+- v0.12: Feature de comparación de ramas completo (actual)
+- v1.0: Optimizaciones y exportación en múltiples formatos
 - v2.0: Integración con APIs de IA

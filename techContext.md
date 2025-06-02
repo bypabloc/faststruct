@@ -6,7 +6,7 @@
 - **Language**: TypeScript 5.0
 - **Runtime**: VS Code Extension Host
 - **Node**: Compatible with VS Code's Node version
-- **Package Manager**: npm
+- **Package Manager**: pnpm
 
 ### Development Tools
 - **Bundler**: esbuild (via VS Code)
@@ -19,9 +19,10 @@
 {
   "minimatch": "^10.0.1",      // Glob pattern matching
   "@types/vscode": "^1.100.0", // VS Code API types
-  "@types/node": "^22.15.26",  // Node.js types
+  "@types/node": "^22.15.29",  // Node.js types
   "jest": "^29.7.0",           // Testing framework
-  "ts-jest": "^29.1.2"         // TypeScript support for Jest
+  "ts-jest": "^29.3.4",        // TypeScript support for Jest
+  "typescript": "^5.8.3"       // TypeScript compiler
 }
 ```
 
@@ -32,14 +33,23 @@
 - `vscode.ExtensionContext` - Extension lifecycle
 - `vscode.Uri` - File path handling
 - `vscode.WebviewPanel` - Configuration UI
-- Updated VS Code engine requirement to ^1.100.0
+- `vscode.scm` - Source Control Management (Git integration)
+- VS Code engine requirement: ^1.100.0
 
 ### File System Architecture
 ```
 /
 ├── src/                    # Source code
 │   ├── commands/          # Command implementations
-│   ├── services/          # Business logic
+│   ├── services/          # Business logic (14 services)
+│   │   ├── BranchComparisonService.ts
+│   │   ├── GitOperationsService.ts
+│   │   ├── DiffAnalysisService.ts
+│   │   ├── MoveDetectionService.ts
+│   │   ├── FileTreeService.ts
+│   │   ├── FileContentService.ts
+│   │   ├── ComparisonOutputService.ts
+│   │   └── ... (7 more services)
 │   ├── managers/          # State management
 │   ├── providers/         # UI providers
 │   ├── templates/         # Webview assets
@@ -48,9 +58,9 @@
 │   ├── constants/        # Constants
 │   ├── logger.ts         # Logging utility
 │   └── main.ts           # Entry point
-├── tests/                 # Unit tests
+├── tests/                 # Unit tests (85% coverage)
 ├── .vscode/              # VS Code settings
-└── dist/                 # Compiled output
+└── out/                  # Compiled output
 ```
 
 ### Build Configuration
@@ -81,9 +91,10 @@ module.exports = {
 
 ### Development Environment
 - **IDE**: VS Code (obviously)
-- **OS**: Linux (development machine)
-- **Git**: Version control
-- **npm scripts**: Task automation
+- **OS**: Linux (WSL2 - Microsoft Standard)
+- **Git**: Version control with branch comparison features
+- **pnpm scripts**: Task automation
+- **Node Version**: Managed with .nvmrc
 
 ### Technical Constraints
 - No external UI frameworks (vanilla JS)

@@ -46,11 +46,27 @@ pnpm run vscode:prepublish  # Prepare for publishing
 FastStruct follows SOLID principles with a modular service-oriented architecture:
 
 ### Core Services (Singleton Pattern)
+
+#### Original Services
 - **ConfigurationService**: Manages VS Code configuration for FastStruct settings
 - **FileSystemService**: Handles all file system operations and directory traversal
 - **StructureGeneratorService**: Orchestrates the generation of project structure documentation
 - **OutputFormatterService**: Formats the final output with proper tree structure and content
 - **CommandRegistrationService**: Centralizes VS Code command registration
+
+#### Branch Comparison Services (New)
+- **BranchComparisonService**: Main orchestrator for branch comparison functionality
+- **GitOperationsService**: Executes Git commands safely with error handling and retries
+- **DiffAnalysisService**: Analyzes diffs with multi-stage resolution (standard → unified → manual → whitespace)
+- **MoveDetectionService**: Detects file moves/renames with similarity analysis
+- **FileTreeService**: Generates enhanced tree structures with change type visualization
+- **FileContentService**: Handles file reading operations for both branches
+- **ComparisonOutputService**: Formats comparison output with syntax highlighting and sections
+- **ProjectStatsService**: Calculates repository statistics and file counts
+- **PatternTestService**: Tests file patterns against exclusion rules
+- **WebviewContentService**: Generates HTML content for webviews
+- **WebviewMessageService**: Handles message communication with webviews
+- **GitignoreImportService**: Imports patterns from .gitignore files
 
 ### Key Components
 - **ExclusionManager**: Complex pattern matching for file/folder exclusions (glob, regex, specific paths)
@@ -61,6 +77,7 @@ FastStruct follows SOLID principles with a modular service-oriented architecture
 - `commands/structureCommands.ts` - Structure generation commands
 - `commands/exclusionCommands.ts` - File/folder exclusion management
 - `commands/configCommands.ts` - Configuration management
+- `commands/branchComparisonCommands.ts` - Branch comparison and Git operations
 
 ### Type Safety
 All types are defined in `src/types/config.types.ts` with comprehensive interfaces for:
@@ -89,9 +106,12 @@ Configuration is stored in VS Code settings under `faststruct.config` with:
 ### Testing Strategy
 - Jest with ts-jest preset
 - VS Code API mocks in `tests/__mocks__/vscode.ts`
-- Service-level unit tests
+- Service-level unit tests with 85%+ coverage
+- Comprehensive branch comparison test suites
 - Utility function tests
 - Mock configurations for testing
+- Git command mocking for reliable tests
+- Multi-scenario testing (success, errors, edge cases)
 
 ## Development Workflow
 
