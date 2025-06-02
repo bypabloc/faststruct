@@ -62,10 +62,7 @@ describe('BranchComparisonService - Statistics Validation', () => {
           // Return a modified file
           callback(null, { stdout: 'M\tpackage.json', stderr: '' });
         } else if (command.includes('git diff target...source') && !command.includes('--')) {
-          // Full diff content
-          callback(null, { stdout: 'diff content here', stderr: '' });
-        } else if (command.includes('git diff target...source -- "package.json"')) {
-          // Diff for specific file - this is where the analysis happens
+          // Full diff content - this is now where the analysis happens
           callback(null, { 
             stdout: `diff --git a/package.json b/package.json
 index 123abc4..def5678 100644
@@ -122,8 +119,6 @@ index 123abc4..def5678 100644
         } else if (command.includes('git diff --find-renames --name-status')) {
           callback(null, { stdout: 'A\tnew-file.ts', stderr: '' });
         } else if (command.includes('git diff target...source') && !command.includes('--')) {
-          callback(null, { stdout: 'diff content here', stderr: '' });
-        } else if (command.includes('git diff target...source -- "new-file.ts"')) {
           callback(null, { 
             stdout: `diff --git a/new-file.ts b/new-file.ts
 new file mode 100644
@@ -170,8 +165,6 @@ index 0000000..123abc4
         } else if (command.includes('git diff --find-renames --name-status')) {
           callback(null, { stdout: 'D\told-file.ts', stderr: '' });
         } else if (command.includes('git diff target...source') && !command.includes('--')) {
-          callback(null, { stdout: 'diff content here', stderr: '' });
-        } else if (command.includes('git diff target...source -- "old-file.ts"')) {
           callback(null, { 
             stdout: `diff --git a/old-file.ts b/old-file.ts
 deleted file mode 100644

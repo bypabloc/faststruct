@@ -50,6 +50,8 @@ interface TreeNodeWithChanges {
   status?: 'added' | 'modified' | 'deleted' | 'renamed';
   additions?: number;
   deletions?: number;
+  movedLines?: number;
+  modifiedMovedLines?: number;
   oldPath?: string;
   similarity?: number;
   [key: string]: any;
@@ -146,18 +148,26 @@ export class BranchComparisonService {
 
       // Validate source branch exists
       try {
-        await execAsync(`git rev-parse --verify ${sourceBranch}`, { cwd: workspaceRoot });
+        await execAsync(`git rev-parse --verify ${sourceBranch}`, {
+          cwd: workspaceRoot,
+        });
       } catch (error) {
-        vscode.window.showErrorMessage(`Branch '${sourceBranch}' does not exist`);
+        vscode.window.showErrorMessage(
+          `Branch '${sourceBranch}' does not exist`
+        );
         Logger.error(`Branch '${sourceBranch}' does not exist`, error);
         return null;
       }
 
       // Validate target branch exists
       try {
-        await execAsync(`git rev-parse --verify ${targetBranch}`, { cwd: workspaceRoot });
+        await execAsync(`git rev-parse --verify ${targetBranch}`, {
+          cwd: workspaceRoot,
+        });
       } catch (error) {
-        vscode.window.showErrorMessage(`Branch '${targetBranch}' does not exist`);
+        vscode.window.showErrorMessage(
+          `Branch '${targetBranch}' does not exist`
+        );
         Logger.error(`Branch '${targetBranch}' does not exist`, error);
         return null;
       }
@@ -265,6 +275,14 @@ export class BranchComparisonService {
       // Add exclusion patterns
       output += this.formatExclusionPatterns(config);
 
+      // Add symbol legend
+      output += "## Leyenda de símbolos:\n";
+      output += "- **+** Línea agregada o nueva\n";
+      output += "- **-** Línea eliminada\n";
+      output += "- **○** Línea movida (reubicada sin modificación)\n";
+      output += "- **●** Línea modificada y movida\n";
+      output += "- **(espacio)** Línea sin cambios (contexto)\n\n";
+
       if (comparison.filesChanged.length === 0) {
         output += "## Resultado:\n";
         output += "No se encontraron cambios entre las ramas seleccionadas.\n";
@@ -282,8 +300,12 @@ export class BranchComparisonService {
       output += `- **Archivos eliminados:** ${comparison.summary.filesDeleted}\n\n`;
 
       // Generate tree structure with file changes
-      const treeWithChanges = this.buildFileTreeWithChanges(
-        comparison.filesChanged
+      const treeWithChanges = await this.buildFileTreeWithChanges(
+        comparison.filesChanged,
+        comparison,
+        workspaceRoot,
+        comparison.targetBranch,
+        comparison.sourceBranch
       );
 
       output += "## Estructura de archivos:\n```\n";
@@ -303,14 +325,19 @@ export class BranchComparisonService {
         comparison.sourceBranch,
         comparison.targetBranch,
         workspaceRoot,
-        options
+        options,
+        comparison
       );
 
       // Add full diff if showDiff option is enabled
       if (options.showDiff && comparison.diffContent) {
         output += "## Diferencias completas\n\n";
         output += "```diff\n";
-        output += comparison.diffContent;
+        // Apply move detection to complete diff
+        const enhancedDiff = this.enhanceDiffWithMoveDetection(
+          comparison.diffContent
+        );
+        output += enhancedDiff;
         output += "\n```\n\n";
       }
 
@@ -392,7 +419,7 @@ export class BranchComparisonService {
 
   /**
    * Parse file changes from complete diff content and extract accurate statistics per file.
-   * 
+   *
    * @param nameStatus - Git diff --name-status output
    * @param diffContent - Complete git diff output
    * @param targetBranch - Target branch name
@@ -410,7 +437,10 @@ export class BranchComparisonService {
     workspaceRoot: string
   ): Promise<FileChange[]> {
     const fileChanges: FileChange[] = [];
-    const statusMap: Record<string, "added" | "modified" | "deleted" | "renamed"> = {
+    const statusMap: Record<
+      string,
+      "added" | "modified" | "deleted" | "renamed"
+    > = {
       A: "added",
       M: "modified",
       D: "deleted",
@@ -423,8 +453,12 @@ export class BranchComparisonService {
 
     // Extract statistics from complete diff content
     const fileStatsMap = this.extractFileStatsFromCompleteDiff(diffContent);
-    
-    Logger.debug(`[parseFileChangesFromCompleteDiff] Found stats for ${Object.keys(fileStatsMap).length} files in complete diff`);
+
+    Logger.debug(
+      `[parseFileChangesFromCompleteDiff] Found stats for ${
+        Object.keys(fileStatsMap).length
+      } files in complete diff`
+    );
 
     for (const line of nameStatusLines) {
       const parts = line.split("\t");
@@ -486,12 +520,16 @@ export class BranchComparisonService {
           }
         } else if (fileStatus === "modified") {
           // For modified files, force minimum 1 change if stats are 0,0
-          Logger.warn(`[CRITICAL] Modified file ${filePath} has 0,0 stats - forcing minimum`);
+          Logger.warn(
+            `[CRITICAL] Modified file ${filePath} has 0,0 stats - forcing minimum`
+          );
           additions = 1;
         }
       }
 
-      Logger.debug(`[parseFileChangesFromCompleteDiff] ${filePath} (${fileStatus}): +${additions}, -${deletions}`);
+      Logger.debug(
+        `[parseFileChangesFromCompleteDiff] ${filePath} (${fileStatus}): +${additions}, -${deletions}`
+      );
 
       fileChanges.push({
         path: filePath,
@@ -508,12 +546,15 @@ export class BranchComparisonService {
 
   /**
    * Extract file statistics from complete diff content.
-   * 
+   *
    * @param diffContent - Complete git diff output
    * @returns Map of file path to statistics
    */
-  private extractFileStatsFromCompleteDiff(diffContent: string): Record<string, { additions: number; deletions: number }> {
-    const fileStats: Record<string, { additions: number; deletions: number }> = {};
+  private extractFileStatsFromCompleteDiff(
+    diffContent: string
+  ): Record<string, { additions: number; deletions: number }> {
+    const fileStats: Record<string, { additions: number; deletions: number }> =
+      {};
     const lines = diffContent.split("\n");
     let currentFile = "";
     let additions = 0;
@@ -527,7 +568,7 @@ export class BranchComparisonService {
         if (currentFile) {
           fileStats[currentFile] = { additions, deletions };
         }
-        
+
         // Extract file path from diff --git a/path b/path
         const match = line.match(/diff --git a\/(.+?) b\/(.+?)$/);
         if (match) {
@@ -535,7 +576,9 @@ export class BranchComparisonService {
           additions = 0;
           deletions = 0;
           inHunk = false;
-          Logger.debug(`[extractFileStatsFromCompleteDiff] Processing file: ${currentFile}`);
+          Logger.debug(
+            `[extractFileStatsFromCompleteDiff] Processing file: ${currentFile}`
+          );
         }
       }
       // Detect hunk start
@@ -557,9 +600,15 @@ export class BranchComparisonService {
       fileStats[currentFile] = { additions, deletions };
     }
 
-    Logger.debug(`[extractFileStatsFromCompleteDiff] Extracted stats for ${Object.keys(fileStats).length} files`);
+    Logger.debug(
+      `[extractFileStatsFromCompleteDiff] Extracted stats for ${
+        Object.keys(fileStats).length
+      } files`
+    );
     Object.entries(fileStats).forEach(([file, stats]) => {
-      Logger.debug(`[extractFileStatsFromCompleteDiff] ${file}: +${stats.additions}, -${stats.deletions}`);
+      Logger.debug(
+        `[extractFileStatsFromCompleteDiff] ${file}: +${stats.additions}, -${stats.deletions}`
+      );
     });
 
     return fileStats;
@@ -583,7 +632,10 @@ export class BranchComparisonService {
     workspaceRoot: string
   ): Promise<FileChange[]> {
     const fileChanges: FileChange[] = [];
-    const statusMap: Record<string, "added" | "modified" | "deleted" | "renamed"> = {
+    const statusMap: Record<
+      string,
+      "added" | "modified" | "deleted" | "renamed"
+    > = {
       A: "added",
       M: "modified",
       D: "deleted",
@@ -628,37 +680,46 @@ export class BranchComparisonService {
 
       try {
         // Always use diff content analysis instead of numstat for more reliable results
-        Logger.debug(`[DIFF ATTEMPT] Trying to get diff for ${filePath} (${fileStatus})`);
+        Logger.debug(
+          `[DIFF ATTEMPT] Trying to get diff for ${filePath} (${fileStatus})`
+        );
         const diffCommand = `git diff ${targetBranch}...${sourceBranch} -- "${filePath}"`;
         Logger.debug(`[DIFF COMMAND] ${diffCommand}`);
-        
-        const { stdout: fileDiff } = await execAsync(
-          diffCommand,
-          {
-            cwd: workspaceRoot,
-            maxBuffer: 1024 * 1024 * 50,
-          }
-        );
+
+        const { stdout: fileDiff } = await execAsync(diffCommand, {
+          cwd: workspaceRoot,
+          maxBuffer: 1024 * 1024 * 50,
+        });
 
         if (fileDiff.trim()) {
-          Logger.debug(`[DIFF DEBUG] File: ${filePath}, diff length: ${fileDiff.length}`);
-          Logger.debug(`[DIFF DEBUG] First 500 chars: ${fileDiff.substring(0, 500)}`);
-          
+          Logger.debug(
+            `[DIFF DEBUG] File: ${filePath}, diff length: ${fileDiff.length}`
+          );
+          Logger.debug(
+            `[DIFF DEBUG] First 500 chars: ${fileDiff.substring(0, 500)}`
+          );
+
           const diffStats = this.analyzeDiffStatistics(fileDiff);
           additions = diffStats.additions;
           deletions = diffStats.deletions;
-          
-          Logger.debug(`[DIFF DEBUG] Analyzed stats for ${filePath}: +${additions}, -${deletions}`);
-          
+
+          Logger.debug(
+            `[DIFF DEBUG] Analyzed stats for ${filePath}: +${additions}, -${deletions}`
+          );
+
           // If we still get 0,0 for a file that should have changes, force a minimum
           if (fileStatus === "modified" && additions === 0 && deletions === 0) {
-            Logger.warn(`[CRITICAL] Modified file ${filePath} analyzed to 0,0 - forcing minimum stats`);
+            Logger.warn(
+              `[CRITICAL] Modified file ${filePath} analyzed to 0,0 - forcing minimum stats`
+            );
             Logger.debug(`[CRITICAL] Full diff content: ${fileDiff}`);
             // For modified files, assume at least 1 change if git says it's modified
             additions = 1;
           }
         } else {
-          Logger.warn(`[DIFF EMPTY] File ${filePath} (${fileStatus}) returned empty diff - length: ${fileDiff.length}`);
+          Logger.warn(
+            `[DIFF EMPTY] File ${filePath} (${fileStatus}) returned empty diff - length: ${fileDiff.length}`
+          );
           // Handle special cases where diff might be empty
           if (fileStatus === "added") {
             // For new files, count lines from source branch
@@ -744,7 +805,10 @@ export class BranchComparisonService {
    */
   private parseFileChanges(nameStatus: string, stat: string): FileChange[] {
     const fileChanges: FileChange[] = [];
-    const statusMap: Record<string, "added" | "modified" | "deleted" | "renamed"> = {
+    const statusMap: Record<
+      string,
+      "added" | "modified" | "deleted" | "renamed"
+    > = {
       A: "added",
       M: "modified",
       D: "deleted",
@@ -754,11 +818,14 @@ export class BranchComparisonService {
     const nameStatusLines = nameStatus
       .split("\n")
       .filter((line) => line.trim());
-    const fileStatusMap = new Map<string, {
-      status: "added" | "modified" | "deleted" | "renamed";
-      oldPath?: string;
-      similarity?: number;
-    }>();
+    const fileStatusMap = new Map<
+      string,
+      {
+        status: "added" | "modified" | "deleted" | "renamed";
+        oldPath?: string;
+        similarity?: number;
+      }
+    >();
 
     nameStatusLines.forEach((line) => {
       const parts = line.split("\t");
@@ -1056,14 +1123,41 @@ export class BranchComparisonService {
    * @param filesChanged - Array of file changes
    * @returns Tree structure with change information
    */
-  private buildFileTreeWithChanges(
-    filesChanged: FileChange[]
-  ): Record<string, TreeNodeWithChanges> {
+  private async buildFileTreeWithChanges(
+    filesChanged: FileChange[],
+    comparison?: BranchComparison,
+    workspaceRoot?: string,
+    targetBranch?: string,
+    sourceBranch?: string
+  ): Promise<Record<string, TreeNodeWithChanges>> {
     const tree: any = {};
 
-    filesChanged.forEach((fileChange) => {
+    for (const fileChange of filesChanged) {
       const parts = fileChange.path.split("/");
       let current = tree;
+      
+      // Calculate moved lines for this file if possible
+      let movedLines = 0;
+      let modifiedMovedLines = 0;
+      if (comparison?.diffContent && workspaceRoot && targetBranch && sourceBranch) {
+        try {
+          const { stdout: fileDiff } = await execAsync(
+            `git diff ${targetBranch}..${sourceBranch} -- "${fileChange.path}"`,
+            {
+              cwd: workspaceRoot,
+              maxBuffer: 1024 * 1024 * 50,
+            }
+          );
+          
+          if (fileDiff) {
+            const stats = this.analyzeDiffStatisticsWithMoveDetection(fileDiff);
+            movedLines = stats.movedLines;
+            modifiedMovedLines = stats.modifiedMovedLines;
+          }
+        } catch (error) {
+          // Ignore errors
+        }
+      }
 
       parts.forEach((part, index) => {
         if (index === parts.length - 1) {
@@ -1073,6 +1167,8 @@ export class BranchComparisonService {
             status: fileChange.status,
             additions: fileChange.additions,
             deletions: fileChange.deletions,
+            movedLines,
+            modifiedMovedLines,
             oldPath: fileChange.oldPath,
             similarity: fileChange.similarity,
           };
@@ -1084,7 +1180,7 @@ export class BranchComparisonService {
           current = current[part];
         }
       });
-    });
+    }
 
     return tree;
   }
@@ -1140,7 +1236,17 @@ export class BranchComparisonService {
       if (value && value.type === "file") {
         // File with change information
         const icon = this.getChangeIcon(value.status || "modified");
-        const stats = `(+${value.additions || 0}, -${value.deletions || 0})`;
+        let stats = `(+${value.additions || 0}, -${value.deletions || 0}`;
+        
+        // Add moved lines count if available
+        if (value.movedLines && value.movedLines > 0) {
+          stats += `, ○${value.movedLines}`;
+        }
+        if (value.modifiedMovedLines && value.modifiedMovedLines > 0) {
+          stats += `, ●${value.modifiedMovedLines}`;
+        }
+        stats += ")";
+        
         let nameWithInfo = name;
 
         // For renamed files, show both old and new names
@@ -1337,6 +1443,7 @@ export class BranchComparisonService {
    * @param targetBranch - Target branch name
    * @param workspaceRoot - Workspace root path
    * @param options - Comparison options
+   * @param comparison - Branch comparison data for accessing complete diff content
    * @returns Formatted detailed file analysis
    * @author Pablo Contreras
    * @created 2025/01/31
@@ -1346,7 +1453,8 @@ export class BranchComparisonService {
     sourceBranch: string,
     targetBranch: string,
     workspaceRoot: string,
-    options?: ComparisonOptions
+    options?: ComparisonOptions,
+    comparison?: BranchComparison
   ): Promise<string> {
     try {
       Logger.functionStart("generateDetailedFileAnalysis", {
@@ -1377,7 +1485,8 @@ export class BranchComparisonService {
           sourceBranch,
           targetBranch,
           workspaceRoot,
-          options
+          options,
+          comparison
         );
         output += "\n---\n\n";
       }
@@ -1395,24 +1504,80 @@ export class BranchComparisonService {
 
   /**
    * Extract hunk information from diff content.
-   * 
+   *
    * @param diffContent - Git diff content
    * @returns Array of hunk information
    */
-  private extractHunkInfo(diffContent: string): Array<{oldStart: number, oldCount: number, newStart: number, newCount: number}> {
+  private extractHunkInfo(
+    diffContent: string
+  ): Array<{
+    oldStart: number;
+    oldCount: number;
+    newStart: number;
+    newCount: number;
+  }> {
     const hunkPattern = /@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/g;
     const hunks = [];
     let match;
-    
+
     while ((match = hunkPattern.exec(diffContent)) !== null) {
       hunks.push({
         oldStart: parseInt(match[1], 10),
-        oldCount: parseInt(match[2] || '1', 10),
+        oldCount: parseInt(match[2] || "1", 10),
         newStart: parseInt(match[3], 10),
-        newCount: parseInt(match[4] || '1', 10)
+        newCount: parseInt(match[4] || "1", 10),
       });
     }
-    
+
+    return hunks;
+  }
+
+  /**
+   * Extract hunk information for a specific file from complete diff content.
+   *
+   * @param diffContent - Complete git diff content
+   * @param filePath - Path to the specific file
+   * @returns Array of hunk information for the file
+   */
+  private extractHunkInfoFromCompleteDiff(
+    diffContent: string,
+    filePath: string
+  ): Array<{
+    oldStart: number;
+    oldCount: number;
+    newStart: number;
+    newCount: number;
+  }> {
+    const lines = diffContent.split("\n");
+    const hunks = [];
+    let currentFile = "";
+    let inTargetFile = false;
+
+    for (const line of lines) {
+      // Detect file diff start
+      if (line.startsWith("diff --git")) {
+        const match = line.match(/diff --git a\/(.+?) b\/(.+?)$/);
+        if (match) {
+          currentFile = match[2]; // Use the "new" file path
+          inTargetFile = currentFile === filePath;
+        }
+      }
+      // Extract hunk headers for target file
+      else if (inTargetFile && line.startsWith("@@")) {
+        const hunkMatch = line.match(
+          /@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/
+        );
+        if (hunkMatch) {
+          hunks.push({
+            oldStart: parseInt(hunkMatch[1], 10),
+            oldCount: parseInt(hunkMatch[2] || "1", 10),
+            newStart: parseInt(hunkMatch[3], 10),
+            newCount: parseInt(hunkMatch[4] || "1", 10),
+          });
+        }
+      }
+    }
+
     return hunks;
   }
 
@@ -1424,6 +1589,7 @@ export class BranchComparisonService {
    * @param targetBranch - Target branch name
    * @param workspaceRoot - Workspace root path
    * @param options - Comparison options
+   * @param comparison - Branch comparison data for accessing complete diff content
    * @returns Formatted file analysis
    * @author Pablo Contreras
    * @created 2025/01/31
@@ -1433,7 +1599,8 @@ export class BranchComparisonService {
     sourceBranch: string,
     targetBranch: string,
     workspaceRoot: string,
-    options?: ComparisonOptions
+    options?: ComparisonOptions,
+    comparison?: BranchComparison
   ): Promise<string> {
     try {
       const {
@@ -1482,38 +1649,37 @@ export class BranchComparisonService {
         output += `**Movido desde:** ${oldPath}\n`;
         output += `**Movido hasta:** ${filePath}\n`;
       }
-      output += `**Cambios:** +${additions} líneas, -${deletions} líneas\n`;
-
-      // Add hunk information for modified/renamed files
-      if (
-        status === "modified" ||
-        (status === "renamed" && (additions > 0 || deletions > 0))
-      ) {
+      output += `**Cambios:** +${additions} líneas, -${deletions} líneas`;
+      
+      // Add moved lines count if available
+      if (comparison?.diffContent) {
         try {
-          const { stdout: diffContent } = await execAsync(
-            `git diff ${targetBranch}...${sourceBranch} -- "${filePath}"`,
+          // Get the file-specific diff
+          const { stdout: fileDiff } = await execAsync(
+            `git diff ${targetBranch}..${sourceBranch} -- "${filePath}"`,
             {
               cwd: workspaceRoot,
               maxBuffer: 1024 * 1024 * 50,
             }
           );
-
-          if (diffContent.trim()) {
-            const hunks = this.extractHunkInfo(diffContent);
-            if (hunks.length > 0) {
-              const hunkSummary = hunks
-                .map(
-                  (h) =>
-                    `@@ -${h.oldStart},${h.oldCount} +${h.newStart},${h.newCount} @@`
-                )
-                .join(", ");
-              output += `**Hunks:** ${hunkSummary}\n`;
+          
+          if (fileDiff) {
+            const stats = this.analyzeDiffStatisticsWithMoveDetection(fileDiff);
+            if (stats.movedLines > 0) {
+              output += `, ○${stats.movedLines} líneas movidas`;
+            }
+            if (stats.modifiedMovedLines > 0) {
+              output += `, ●${stats.modifiedMovedLines} líneas modificadas y movidas`;
             }
           }
         } catch (error) {
-          // If we can't get diff, just continue without hunk info
+          // Ignore errors, just don't show moved lines count
         }
       }
+      
+      output += "\n";
+
+      // No hunk information display (removed as requested)
 
       output += "\n";
 
@@ -1632,12 +1798,14 @@ export class BranchComparisonService {
               ]);
 
               if (targetContent !== sourceContent) {
-                diffContent = this.generateManualDiff(
+                const manualDiff = this.generateManualDiff(
                   filePath,
                   targetContent,
                   sourceContent,
                   0
                 );
+                // Use manual diff as is (move detection will be applied later)
+                diffContent = manualDiff;
               } else if (options?.debugMode) {
                 diffContent = `# Debug: File contents are identical between branches\n# This might indicate:\n# 1. Whitespace-only changes\n# 2. Line ending differences\n# 3. File mode changes\n# Target content length: ${targetContent.length} bytes\n# Source content length: ${sourceContent.length} bytes\n`;
               }
@@ -1672,8 +1840,10 @@ export class BranchComparisonService {
           }
 
           if (diffContent.trim()) {
+            // Enhance diff with move detection
+            const enhancedDiff = this.enhanceDiffWithMoveDetection(diffContent);
             output += "```diff\n";
-            output += diffContent;
+            output += enhancedDiff;
             output += "\n```\n\n";
           } else {
             output += `*No se pudieron obtener las diferencias específicas para este archivo.*\n`;
@@ -1721,24 +1891,19 @@ export class BranchComparisonService {
     let diffContent = `--- a/${filePath}\n+++ b/${filePath}\n`;
     diffContent += `@@ -1,${targetLines.length} +1,${sourceLines.length} @@\n`;
 
-    const maxLinesToShow = Math.max(targetLines.length, sourceLines.length);
+    // Use a simple LCS-based approach to find the actual differences
+    const diffs = this.computeSimpleDiff(targetLines, sourceLines);
     let changesFound = false;
 
-    for (let i = 0; i < maxLinesToShow; i++) {
-      const targetLine = targetLines[i] || "";
-      const sourceLine = sourceLines[i] || "";
-
-      if (targetLine !== sourceLine) {
+    for (const diff of diffs) {
+      if (diff.type === 'removed') {
         changesFound = true;
-        if (targetLine && i < targetLines.length) {
-          diffContent += `-${targetLine}\n`;
-        }
-        if (sourceLine && i < sourceLines.length) {
-          diffContent += `+${sourceLine}\n`;
-        }
-      } else if (changesFound && i < 5) {
-        // Show some context around changes
-        diffContent += ` ${targetLine}\n`;
+        diffContent += `-${diff.line}\n`;
+      } else if (diff.type === 'added') {
+        changesFound = true;
+        diffContent += `+${diff.line}\n`;
+      } else if (diff.type === 'context') {
+        diffContent += ` ${diff.line}\n`;
       }
     }
 
@@ -1749,6 +1914,89 @@ export class BranchComparisonService {
     }
 
     return diffContent;
+  }
+
+  /**
+   * Compute a simple diff between two arrays of lines.
+   * This algorithm maintains the order of the source file while correctly 
+   * identifying additions, deletions, and context lines.
+   * 
+   * @param targetLines - Lines from target content
+   * @param sourceLines - Lines from source content  
+   * @returns Array of diff operations in source file order
+   */
+  private computeSimpleDiff(targetLines: string[], sourceLines: string[]): Array<{
+    type: 'context' | 'removed' | 'added';
+    line: string;
+  }> {
+    const result: Array<{ type: 'context' | 'removed' | 'added'; line: string }> = [];
+    
+    // Use LCS-like approach to find matching lines
+    const matches = this.findLineMatches(targetLines, sourceLines);
+    
+    let targetIndex = 0;
+    let sourceIndex = 0;
+    
+    // Walk through the source file maintaining its order
+    while (sourceIndex < sourceLines.length || targetIndex < targetLines.length) {
+      const sourceLine = sourceLines[sourceIndex];
+      const targetLine = targetLines[targetIndex];
+      
+      // Check if current source line has a match in target
+      const sourceMatch = matches.sourceToTarget.get(sourceIndex);
+      const targetMatch = matches.targetToSource.get(targetIndex);
+      
+      if (sourceMatch !== undefined && targetMatch !== undefined && 
+          sourceMatch === targetIndex && targetMatch === sourceIndex) {
+        // Both lines match - this is context
+        result.push({ type: 'context', line: sourceLine });
+        sourceIndex++;
+        targetIndex++;
+      } else if (sourceMatch === undefined) {
+        // Source line has no match - it's an addition
+        result.push({ type: 'added', line: sourceLine });
+        sourceIndex++;
+      } else if (targetMatch === undefined || 
+                 (sourceMatch !== undefined && sourceMatch > targetIndex)) {
+        // Target line has no match or source line matches later - target line was removed
+        result.push({ type: 'removed', line: targetLine });
+        targetIndex++;
+      } else {
+        // Source line matches earlier in target - it's an addition
+        result.push({ type: 'added', line: sourceLine });
+        sourceIndex++;
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Find line matches between target and source using a simple LCS approach.
+   * This helps identify which lines are common between both files.
+   */
+  private findLineMatches(targetLines: string[], sourceLines: string[]): {
+    sourceToTarget: Map<number, number>;
+    targetToSource: Map<number, number>;
+  } {
+    const sourceToTarget = new Map<number, number>();
+    const targetToSource = new Map<number, number>();
+    
+    // For each line in source, find its first occurrence in target
+    for (let sourceIndex = 0; sourceIndex < sourceLines.length; sourceIndex++) {
+      const sourceLine = sourceLines[sourceIndex];
+      
+      // Find the first unmatched occurrence of this line in target
+      for (let targetIndex = 0; targetIndex < targetLines.length; targetIndex++) {
+        if (targetLines[targetIndex] === sourceLine && !targetToSource.has(targetIndex)) {
+          sourceToTarget.set(sourceIndex, targetIndex);
+          targetToSource.set(targetIndex, sourceIndex);
+          break;
+        }
+      }
+    }
+    
+    return { sourceToTarget, targetToSource };
   }
 
   /**
@@ -1770,16 +2018,23 @@ export class BranchComparisonService {
     let inDiffSection = false;
     let hunkCount = 0;
 
-    Logger.debug(`[analyzeDiffStatistics] Analyzing ${lines.length} lines of diff`);
+    Logger.debug(
+      `[analyzeDiffStatistics] Analyzing ${lines.length} lines of diff`
+    );
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // Detectar inicio de sección de diff (hunks)
       if (line.startsWith("@@")) {
         inDiffSection = true;
         hunkCount++;
-        Logger.debug(`[analyzeDiffStatistics] Found hunk ${hunkCount}: ${line.substring(0, 100)}`);
+        Logger.debug(
+          `[analyzeDiffStatistics] Found hunk ${hunkCount}: ${line.substring(
+            0,
+            100
+          )}`
+        );
         continue;
       }
 
@@ -1800,12 +2055,16 @@ export class BranchComparisonService {
       }
     }
 
-    Logger.debug(`[analyzeDiffStatistics] Found ${hunkCount} hunks, +${additions}, -${deletions}`);
+    Logger.debug(
+      `[analyzeDiffStatistics] Found ${hunkCount} hunks, +${additions}, -${deletions}`
+    );
 
     // If we found no hunks but have content, try a different approach
     if (hunkCount === 0 && diffContent.trim().length > 0) {
-      Logger.warn(`[analyzeDiffStatistics] No hunks found but diff has content, trying fallback analysis`);
-      
+      Logger.warn(
+        `[analyzeDiffStatistics] No hunks found but diff has content, trying fallback analysis`
+      );
+
       // Fallback: count all + and - lines, even without hunk context
       for (const line of lines) {
         if (line.startsWith("+") && !line.startsWith("+++")) {
@@ -1814,11 +2073,304 @@ export class BranchComparisonService {
           deletions++;
         }
       }
-      
-      Logger.debug(`[analyzeDiffStatistics] Fallback analysis: +${additions}, -${deletions}`);
+
+      Logger.debug(
+        `[analyzeDiffStatistics] Fallback analysis: +${additions}, -${deletions}`
+      );
     }
 
     return { additions, deletions };
+  }
+
+  /**
+   * Analyze diff statistics excluding moved lines.
+   *
+   * @param diffContent - Raw git diff content
+   * @returns Object with actual additions and deletions count (excluding moved lines)
+   * @author Pablo Contreras
+   * @created 2025/01/06
+   */
+  private analyzeDiffStatisticsWithMoveDetection(diffContent: string): {
+    additions: number;
+    deletions: number;
+    movedLines: number;
+    modifiedMovedLines: number;
+  } {
+    const lines = diffContent.split("\n");
+    const removedLines = new Map<string, number>();
+    const addedLines = new Map<string, number>();
+    let inDiffSection = false;
+
+    // First pass: collect all removed and added lines with counts
+    for (const line of lines) {
+      if (line.startsWith("@@")) {
+        inDiffSection = true;
+        continue;
+      }
+
+      if (inDiffSection) {
+        if (line.startsWith("-") && !line.startsWith("---")) {
+          const content = line.substring(1).trim();
+          if (content) {
+            removedLines.set(content, (removedLines.get(content) || 0) + 1);
+          }
+        } else if (line.startsWith("+") && !line.startsWith("+++")) {
+          const content = line.substring(1).trim();
+          if (content) {
+            addedLines.set(content, (addedLines.get(content) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    // Calculate moved lines and real additions/deletions
+    let movedLines = 0;
+    let realAdditions = 0;
+    let realDeletions = 0;
+
+    // Process removed lines
+    for (const [content, count] of removedLines) {
+      const addedCount = addedLines.get(content) || 0;
+      const moved = Math.min(count, addedCount);
+      movedLines += moved;
+      realDeletions += count - moved;
+    }
+
+    // Process added lines
+    for (const [content, count] of addedLines) {
+      const removedCount = removedLines.get(content) || 0;
+      const moved = Math.min(count, removedCount);
+      // Don't count moved lines again, they were already counted above
+      realAdditions += count - moved;
+    }
+
+    Logger.debug(
+      `[analyzeDiffStatisticsWithMoveDetection] Real: +${realAdditions}, -${realDeletions}, moved: ${movedLines}`
+    );
+
+    // Get additional move detection information
+    const detectResult = this.detectMovedLines(diffContent);
+
+    return {
+      additions: realAdditions,
+      deletions: realDeletions,
+      movedLines,
+      modifiedMovedLines: detectResult.modifiedMovedCount,
+    };
+  }
+
+  /**
+   * Detect lines that were moved or modified in a diff.
+   *
+   * @param diffContent - Raw git diff content
+   * @returns Map of moved lines and processed diff content
+   * @author Pablo Contreras
+   * @created 2025/01/06
+   */
+  private detectMovedLines(diffContent: string): {
+    processedDiff: string;
+    movedLinesCount: number;
+    modifiedMovedCount: number;
+  } {
+    const lines = diffContent.split("\n");
+    const removedLines = new Map<
+      string,
+      { indices: number[]; fullLine: string }
+    >();
+    const addedLines = new Map<
+      string,
+      { indices: number[]; fullLine: string }
+    >();
+    const movedLines = new Map<
+      string,
+      { removed: number[]; added: number[] }
+    >();
+    const modifiedMovedLines = new Map<string, boolean>();
+
+    // Check if this is a new file (no removed lines at all)
+    const hasRemovedLines = lines.some(line => line.startsWith("-") && !line.startsWith("---"));
+    const hasAddedLines = lines.some(line => line.startsWith("+") && !line.startsWith("+++"));
+    
+    // If it's a new file (only additions), don't detect moved lines
+    if (!hasRemovedLines && hasAddedLines) {
+      const processedLines: string[] = [];
+      
+      for (const line of lines) {
+        if (line.startsWith("@@")) {
+          // Skip hunk headers
+          continue;
+        }
+        processedLines.push(line);
+      }
+      
+      return {
+        processedDiff: processedLines.join("\n"),
+        movedLinesCount: 0,
+        modifiedMovedCount: 0,
+      };
+    }
+
+    // First pass: collect all removed and added lines
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith("-") && !line.startsWith("---")) {
+        // Use both trimmed content for comparison and full content for display
+        const fullContent = line.substring(1);
+        const trimmedContent = fullContent.trim();
+
+        if (trimmedContent) {
+          if (!removedLines.has(trimmedContent)) {
+            removedLines.set(trimmedContent, {
+              indices: [],
+              fullLine: fullContent,
+            });
+          }
+          removedLines.get(trimmedContent)!.indices.push(i);
+        }
+      } else if (line.startsWith("+") && !line.startsWith("+++")) {
+        const fullContent = line.substring(1);
+        const trimmedContent = fullContent.trim();
+
+        if (trimmedContent) {
+          if (!addedLines.has(trimmedContent)) {
+            addedLines.set(trimmedContent, {
+              indices: [],
+              fullLine: fullContent,
+            });
+          }
+          addedLines.get(trimmedContent)!.indices.push(i);
+        }
+      }
+    }
+
+    // Identify moved lines (exist in both removed and added)
+    for (const [content, removedInfo] of removedLines) {
+      if (addedLines.has(content)) {
+        const addedInfo = addedLines.get(content)!;
+        movedLines.set(content, {
+          removed: removedInfo.indices,
+          added: addedInfo.indices,
+        });
+      }
+    }
+
+    // Check for modified and moved lines
+    // These are lines that appear to be similar but have slight modifications
+    for (const [removedContent, removedInfo] of removedLines) {
+      if (!movedLines.has(removedContent)) {
+        // Check if there's a similar line in added lines
+        for (const [addedContent, addedInfo] of addedLines) {
+          if (!movedLines.has(addedContent) && this.areLinesRelated(removedContent, addedContent)) {
+            modifiedMovedLines.set(removedContent, true);
+            modifiedMovedLines.set(addedContent, true);
+          }
+        }
+      }
+    }
+
+    // Second pass: process the diff with moved line markers
+    const processedLines: string[] = [];
+    const processedIndices = new Set<number>();
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.startsWith("-") && !line.startsWith("---")) {
+        const trimmedContent = line.substring(1).trim();
+
+        if (
+          trimmedContent &&
+          movedLines.has(trimmedContent) &&
+          !processedIndices.has(i)
+        ) {
+          // Mark as moved line with ○ symbol
+          processedLines.push("○" + line.substring(1));
+          processedIndices.add(i);
+
+          // Mark corresponding added lines as processed
+          const moveInfo = movedLines.get(trimmedContent)!;
+          for (const addIdx of moveInfo.added) {
+            processedIndices.add(addIdx);
+          }
+        } else if (!processedIndices.has(i)) {
+          processedLines.push(line);
+        }
+      } else if (line.startsWith("+") && !line.startsWith("+++")) {
+        // Skip lines that were marked as moved
+        if (!processedIndices.has(i)) {
+          processedLines.push(line);
+        }
+      } else if (line.startsWith("@@")) {
+        // Skip hunk headers to avoid clutter in output
+        continue;
+      } else if (line.startsWith(" ")) {
+        // Context lines (unchanged) - preserve exactly as they are
+        processedLines.push(line);
+      } else {
+        // Other lines (file headers, etc)
+        processedLines.push(line);
+      }
+    }
+
+    return {
+      processedDiff: processedLines.join("\n"),
+      movedLinesCount: movedLines.size,
+      modifiedMovedCount: modifiedMovedLines.size / 2, // Divided by 2 because we count both removed and added
+    };
+  }
+
+  /**
+   * Check if two lines are related (similar content with modifications).
+   * 
+   * @param line1 - First line content
+   * @param line2 - Second line content
+   * @returns True if lines are related
+   */
+  private areLinesRelated(line1: string, line2: string): boolean {
+    // Simple heuristic: check if lines share significant common substring
+    // This could be improved with more sophisticated similarity algorithms
+    const minLength = Math.min(line1.length, line2.length);
+    const threshold = 0.6; // 60% similarity
+    
+    if (minLength < 10) return false; // Too short to determine
+    
+    // Check for common prefixes or key parts
+    const commonPrefix = this.getCommonPrefixLength(line1, line2);
+    const commonSuffix = this.getCommonSuffixLength(line1, line2);
+    
+    const similarity = (commonPrefix + commonSuffix) / minLength;
+    return similarity >= threshold;
+  }
+
+  private getCommonPrefixLength(str1: string, str2: string): number {
+    let i = 0;
+    while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+      i++;
+    }
+    return i;
+  }
+
+  private getCommonSuffixLength(str1: string, str2: string): number {
+    let i = 0;
+    while (i < str1.length && i < str2.length && 
+           str1[str1.length - 1 - i] === str2[str2.length - 1 - i]) {
+      i++;
+    }
+    return i;
+  }
+
+  /**
+   * Enhanced diff processing with advanced move detection.
+   *
+   * @param diffContent - Raw git diff content
+   * @returns Enhanced diff with move indicators
+   * @author Pablo Contreras
+   * @created 2025/01/06
+   */
+  private enhanceDiffWithMoveDetection(diffContent: string): string {
+    const { processedDiff } = this.detectMovedLines(diffContent);
+    return processedDiff;
   }
 
   /**
