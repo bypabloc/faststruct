@@ -5,17 +5,17 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { FileSystemService } from '../../src/services/FileSystemService';
-import { FastStructConfig } from '../../src/types';
+import { FileSystemService } from '@/services/FileSystemService';
+import { FastStructConfig } from '@/types';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PatternMatcher } from '../../src/utils/patternMatcher';
+import { PatternMatcher } from '@/utils/patternMatcher';
 
 // Mock de fs
 jest.mock('fs');
 
 // Mock PatternMatcher
-jest.mock('../../src/utils/patternMatcher', () => ({
+jest.mock('@/utils/patternMatcher', () => ({
   PatternMatcher: {
     getInstance: jest.fn(() => ({
       shouldExclude: jest.fn(() => false),
@@ -25,7 +25,7 @@ jest.mock('../../src/utils/patternMatcher', () => ({
 }));
 
 // Mock Logger
-jest.mock('../../src/logger', () => ({
+jest.mock('@/logger', () => ({
   Logger: {
     debug: jest.fn(),
     info: jest.fn(),

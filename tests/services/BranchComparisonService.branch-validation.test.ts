@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { BranchComparisonService } from '../../src/services/BranchComparisonService';
-import { Logger } from '../../src/logger';
+import { BranchComparisonService } from '@/services/BranchComparisonService';
+import { Logger } from '@/logger';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 // Mock dependencies
-jest.mock('../../src/logger');
+jest.mock('@/logger');
 jest.mock('child_process', () => ({
   exec: jest.fn()
 }));

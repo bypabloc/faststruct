@@ -5,11 +5,11 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { PatternMatcher } from '../../src/utils/patternMatcher';
-import { FastStructConfig } from '../../src/types';
+import { PatternMatcher } from '@/utils/patternMatcher';
+import { FastStructConfig } from '@/types';
 
 // Mock Logger
-jest.mock('../../src/logger', () => ({
+jest.mock('@/logger', () => ({
   Logger: {
     debug: jest.fn(),
     info: jest.fn(),

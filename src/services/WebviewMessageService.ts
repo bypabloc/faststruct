@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { Logger } from '../logger';
-import { WebviewMessage, WebviewMessageHandler } from '../types/webview.types';
-import { ConfigurationService } from './ConfigurationService';
-import { GitignoreImportService } from './GitignoreImportService';
-import { PatternTestService } from './PatternTestService';
-import { ProjectStatsService } from './ProjectStatsService';
+import { Logger } from '@/logger';
+import { WebviewMessage, WebviewMessageHandler } from '@/types/webview.types';
+import { ConfigurationService } from '@/services/ConfigurationService';
+import { GitignoreImportService } from '@/services/GitignoreImportService';
+import { PatternTestService } from '@/services/PatternTestService';
+import { ProjectStatsService } from '@/services/ProjectStatsService';
 
 /**
  * Servicio para manejar mensajes del webview.

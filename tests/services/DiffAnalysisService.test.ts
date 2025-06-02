@@ -1,10 +1,10 @@
-import { DiffAnalysisService } from '../../src/services/DiffAnalysisService';
-import { GitOperationsService } from '../../src/services/GitOperationsService';
-import { Logger } from '../../src/logger';
+import { DiffAnalysisService } from '@/services/DiffAnalysisService';
+import { GitOperationsService } from '@/services/GitOperationsService';
+import { Logger } from '@/logger';
 
 // Mock dependencies
-jest.mock('../../src/logger');
-jest.mock('../../src/services/GitOperationsService');
+jest.mock('@/logger');
+jest.mock('@/services/GitOperationsService');
 
 describe('DiffAnalysisService', () => {
   let service: DiffAnalysisService;

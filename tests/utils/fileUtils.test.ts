@@ -11,7 +11,7 @@ import {
   isTextFile, 
   sanitizeFilename,
   formatModifiedDate 
-} from '../../src/utils/fileUtils';
+} from '@/utils/fileUtils';
 
 describe('fileUtils', () => {
   describe('formatFileSize', () => {

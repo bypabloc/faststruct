@@ -19,6 +19,18 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/types$': '<rootDir>/src/types/index',
+    '^@/types/(.*)$': '<rootDir>/src/types/$1',
+    '^@/services/(.*)$': '<rootDir>/src/services/$1',
+    '^@/managers/(.*)$': '<rootDir>/src/managers/$1',
+    '^@/commands/(.*)$': '<rootDir>/src/commands/$1',
+    '^@/utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@/constants$': '<rootDir>/src/constants/index',
+    '^@/constants/(.*)$': '<rootDir>/src/constants/$1',
+    '^@/providers/(.*)$': '<rootDir>/src/providers/$1',
+    '^@/templates$': '<rootDir>/src/templates/index',
+    '^@/templates/(.*)$': '<rootDir>/src/templates/$1',
+    '^@/logger$': '<rootDir>/src/logger',
     '^vscode$': '<rootDir>/tests/__mocks__/vscode.ts'
   },
   modulePathIgnorePatterns: ['<rootDir>/out/'],

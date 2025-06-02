@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { registerBranchComparisonCommands } from '../../src/commands/branchComparisonCommands';
-import { BranchComparisonService } from '../../src/services/BranchComparisonService';
-import { Logger } from '../../src/logger';
+import { registerBranchComparisonCommands } from '@/commands/branchComparisonCommands';
+import { BranchComparisonService } from '@/services/BranchComparisonService';
+import { Logger } from '@/logger';
 
 // Mock dependencies
-jest.mock('../../src/logger');
-jest.mock('../../src/services/BranchComparisonService');
+jest.mock('@/logger');
+jest.mock('@/services/BranchComparisonService');
 
 describe('branchComparisonCommands', () => {
   let mockContext: vscode.ExtensionContext;

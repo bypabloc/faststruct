@@ -5,7 +5,7 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { GitignoreImportService } from '../../src/services/GitignoreImportService';
+import { GitignoreImportService } from '@/services/GitignoreImportService';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';

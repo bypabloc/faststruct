@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { GitOperationsService } from '../../src/services/GitOperationsService';
-import { Logger } from '../../src/logger';
+import { GitOperationsService } from '@/services/GitOperationsService';
+import { Logger } from '@/logger';
 import { exec } from 'child_process';
 
 // Mock dependencies
-jest.mock('../../src/logger');
+jest.mock('@/logger');
 jest.mock('child_process', () => ({
   exec: jest.fn()
 }));

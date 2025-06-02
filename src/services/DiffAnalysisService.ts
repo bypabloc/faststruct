@@ -1,5 +1,5 @@
-import { Logger } from '../logger';
-import { GitOperationsService } from './GitOperationsService';
+import { Logger } from '@/logger';
+import { GitOperationsService } from '@/services/GitOperationsService';
 
 export interface FileChange {
   path: string;

@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { Logger } from '../logger';
-import { StructureGeneratorService } from './StructureGeneratorService';
-import { ConfigurationService } from './ConfigurationService';
-import { PatternMatcher } from '../utils/patternMatcher';
+import { Logger } from '@/logger';
+import { StructureGeneratorService } from '@/services/StructureGeneratorService';
+import { ConfigurationService } from '@/services/ConfigurationService';
+import { PatternMatcher } from '@/utils/patternMatcher';
 
 // Import the new modular services
-import { GitOperationsService, BranchInfo } from './GitOperationsService';
-import { DiffAnalysisService, FileChange } from './DiffAnalysisService';
-import { MoveDetectionService } from './MoveDetectionService';
-import { FileTreeService } from './FileTreeService';
-import { FileContentService, ComparisonOptions } from './FileContentService';
-import { ComparisonOutputService, BranchComparison } from './ComparisonOutputService';
+import { GitOperationsService, BranchInfo } from '@/services/GitOperationsService';
+import { DiffAnalysisService, FileChange } from '@/services/DiffAnalysisService';
+import { MoveDetectionService } from '@/services/MoveDetectionService';
+import { FileTreeService } from '@/services/FileTreeService';
+import { FileContentService, ComparisonOptions } from '@/services/FileContentService';
+import { ComparisonOutputService, BranchComparison } from '@/services/ComparisonOutputService';
 
 /**
  * Refactored BranchComparisonService following SOLID principles.

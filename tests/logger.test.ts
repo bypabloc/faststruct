@@ -5,7 +5,7 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { Logger } from '../src/logger';
+import { Logger } from '@/logger';
 import * as vscode from 'vscode';
 
 describe('Logger', () => {

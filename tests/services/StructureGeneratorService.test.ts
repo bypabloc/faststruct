@@ -5,15 +5,15 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { StructureGeneratorService } from '../../src/services/StructureGeneratorService';
-import { FileSystemService } from '../../src/services/FileSystemService';
-import { OutputFormatterService } from '../../src/services/OutputFormatterService';
-import { FastStructConfig, TreeItem } from '../../src/types';
+import { StructureGeneratorService } from '@/services/StructureGeneratorService';
+import { FileSystemService } from '@/services/FileSystemService';
+import { OutputFormatterService } from '@/services/OutputFormatterService';
+import { FastStructConfig, TreeItem } from '@/types';
 import * as path from 'path';
 
 // Mock de servicios
-jest.mock('../../src/services/FileSystemService');
-jest.mock('../../src/services/OutputFormatterService');
+jest.mock('@/services/FileSystemService');
+jest.mock('@/services/OutputFormatterService');
 
 describe('StructureGeneratorService', () => {
   let service: StructureGeneratorService;

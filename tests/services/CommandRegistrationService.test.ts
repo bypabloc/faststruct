@@ -5,11 +5,11 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { CommandRegistrationService } from '../../src/services/CommandRegistrationService';
+import { CommandRegistrationService } from '@/services/CommandRegistrationService';
 import * as vscode from 'vscode';
 
 // Mock de los módulos de comandos
-jest.mock('../../src/commands/structureCommands', () => ({
+jest.mock('@/commands/structureCommands', () => ({
   registerStructureCommands: jest.fn().mockReturnValue([
     { dispose: jest.fn() },
     { dispose: jest.fn() },
@@ -17,22 +17,22 @@ jest.mock('../../src/commands/structureCommands', () => ({
   ])
 }));
 
-jest.mock('../../src/commands/exclusionCommands', () => ({
+jest.mock('@/commands/exclusionCommands', () => ({
   registerExclusionCommands: jest.fn().mockReturnValue([
     { dispose: jest.fn() },
     { dispose: jest.fn() }
   ])
 }));
 
-jest.mock('../../src/commands/configCommands', () => ({
+jest.mock('@/commands/configCommands', () => ({
   registerConfigCommands: jest.fn().mockReturnValue([
     { dispose: jest.fn() }
   ])
 }));
 
-import { registerStructureCommands } from '../../src/commands/structureCommands';
-import { registerExclusionCommands } from '../../src/commands/exclusionCommands';
-import { registerConfigCommands } from '../../src/commands/configCommands';
+import { registerStructureCommands } from '@/commands/structureCommands';
+import { registerExclusionCommands } from '@/commands/exclusionCommands';
+import { registerConfigCommands } from '@/commands/configCommands';
 
 describe('CommandRegistrationService', () => {
   let service: CommandRegistrationService;

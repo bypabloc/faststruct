@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Logger } from '../logger';
-import { PatternMatcher } from '../utils/patternMatcher';
+import { Logger } from '@/logger';
+import { PatternMatcher } from '@/utils/patternMatcher';
 
 /**
  * Servicio para probar patrones de exclusión.

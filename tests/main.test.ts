@@ -6,13 +6,13 @@
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import * as vscode from 'vscode';
-import { activate, deactivate } from '../src/main';
-import { CommandRegistrationService } from '../src/services/CommandRegistrationService';
-import { Logger } from '../src/logger';
+import { activate, deactivate } from '@/main';
+import { CommandRegistrationService } from '@/services/CommandRegistrationService';
+import { Logger } from '@/logger';
 
 // Mock de servicios
-jest.mock('../src/services/CommandRegistrationService');
-jest.mock('../src/logger');
+jest.mock('@/services/CommandRegistrationService');
+jest.mock('@/logger');
 
 describe('main.ts', () => {
   let mockContext: any;

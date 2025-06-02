@@ -1,9 +1,9 @@
-import { MoveDetectionService } from '../../src/services/MoveDetectionService';
-import { FileTreeService } from '../../src/services/FileTreeService';
-import { Logger } from '../../src/logger';
+import { MoveDetectionService } from '@/services/MoveDetectionService';
+import { FileTreeService } from '@/services/FileTreeService';
+import { Logger } from '@/logger';
 
 // Mock dependencies
-jest.mock('../../src/logger');
+jest.mock('@/logger');
 
 describe('MoveDetectionService - Move Detection', () => {
   let moveService: MoveDetectionService;

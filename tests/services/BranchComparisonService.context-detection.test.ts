@@ -1,8 +1,8 @@
-import { MoveDetectionService } from '../../src/services/MoveDetectionService';
-import { Logger } from '../../src/logger';
+import { MoveDetectionService } from '@/services/MoveDetectionService';
+import { Logger } from '@/logger';
 
 // Mock dependencies
-jest.mock('../../src/logger');
+jest.mock('@/logger');
 
 describe('MoveDetectionService - Context Detection', () => {
   let service: MoveDetectionService;

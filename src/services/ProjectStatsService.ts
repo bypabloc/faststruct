@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Logger } from '../logger';
-import { ConfigurationService } from './ConfigurationService';
-import { ExclusionStats } from '../types';
+import { Logger } from '@/logger';
+import { ConfigurationService } from '@/services/ConfigurationService';
+import { ExclusionStats } from '@/types';
 
 /**
  * Servicio para obtener estadísticas del proyecto.

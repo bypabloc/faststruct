@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { Logger } from '../logger';
+import { Logger } from '@/logger';
 
 /**
  * Servicio para generar el contenido HTML del webview.

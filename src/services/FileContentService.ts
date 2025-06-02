@@ -1,7 +1,7 @@
-import { Logger } from '../logger';
-import { FileChange } from './DiffAnalysisService';
-import { GitOperationsService } from './GitOperationsService';
-import { MoveDetectionService } from './MoveDetectionService';
+import { Logger } from '@/logger';
+import { FileChange } from '@/services/DiffAnalysisService';
+import { GitOperationsService } from '@/services/GitOperationsService';
+import { MoveDetectionService } from '@/services/MoveDetectionService';
 
 export interface ComparisonOptions {
   showDiff?: boolean;

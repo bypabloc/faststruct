@@ -13,7 +13,7 @@ import {
   joinPaths,
   getParentDirectory,
   isPathInside
-} from '../../src/utils/pathUtils';
+} from '@/utils/pathUtils';
 
 describe('pathUtils', () => {
   // Detectar el sistema operativo para tests específicos de plataforma

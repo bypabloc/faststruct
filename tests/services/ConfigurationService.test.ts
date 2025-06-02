@@ -5,7 +5,7 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { ConfigurationService } from '../../src/services/ConfigurationService';
+import { ConfigurationService } from '@/services/ConfigurationService';
 import * as vscode from 'vscode';
 
 describe('ConfigurationService', () => {

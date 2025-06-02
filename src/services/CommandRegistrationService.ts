@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { Logger } from '../logger';
-import { registerStructureCommands } from '../commands/structureCommands';
-import { registerExclusionCommands } from '../commands/exclusionCommands';
-import { registerConfigCommands } from '../commands/configCommands';
-import { registerBranchComparisonCommands } from '../commands/branchComparisonCommands';
+import { Logger } from '@/logger';
+import { registerStructureCommands } from '@/commands/structureCommands';
+import { registerExclusionCommands } from '@/commands/exclusionCommands';
+import { registerConfigCommands } from '@/commands/configCommands';
+import { registerBranchComparisonCommands } from '@/commands/branchComparisonCommands';
 
 /**
  * Servicio para registrar todos los comandos de la extensión.

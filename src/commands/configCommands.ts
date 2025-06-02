@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { ConfigWebviewProvider } from '../providers/ConfigWebviewProvider';
-import { ConfigurationService } from '../services/ConfigurationService';
-import { Logger } from '../logger';
+import { ConfigWebviewProvider } from '@/providers/ConfigWebviewProvider';
+import { ConfigurationService } from '@/services/ConfigurationService';
+import { Logger } from '@/logger';
 
 /**
  * Registra todos los comandos relacionados con configuración.

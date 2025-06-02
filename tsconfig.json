@@ -18,13 +18,19 @@
     "skipLibCheck": true,
     "baseUrl": "./src",
     "paths": {
+      "@/*": ["*"],
+      "@/types": ["types/index"],
       "@/types/*": ["types/*"],
       "@/services/*": ["services/*"],
       "@/managers/*": ["managers/*"],
       "@/commands/*": ["commands/*"],
       "@/utils/*": ["utils/*"],
+      "@/constants": ["constants/index"],
       "@/constants/*": ["constants/*"],
-      "@/providers/*": ["providers/*"]
+      "@/providers/*": ["providers/*"],
+      "@/templates": ["templates/index"],
+      "@/templates/*": ["templates/*"],
+      "@/logger": ["logger"]
     }
   },
   "include": ["src/**/*", "src/**/*.ts"],

@@ -5,14 +5,14 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { ExclusionManager } from '../../src/managers/ExclusionManager';
-import { ConfigurationService } from '../../src/services/ConfigurationService';
+import { ExclusionManager } from '@/managers/ExclusionManager';
+import { ConfigurationService } from '@/services/ConfigurationService';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
 // Mock de servicios
-jest.mock('../../src/services/ConfigurationService');
+jest.mock('@/services/ConfigurationService');
 jest.mock('fs');
 
 describe('ExclusionManager', () => {

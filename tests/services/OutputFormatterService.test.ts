@@ -5,15 +5,15 @@
  * @created 2025/01/31
  */
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import { OutputFormatterService } from '../../src/services/OutputFormatterService';
-import { FileSystemService } from '../../src/services/FileSystemService';
-import { PatternMatcher } from '../../src/utils/patternMatcher';
-import { TreeItem, FastStructConfig } from '../../src/types';
-import { AI_STRUCTURE_GUIDE, STRUCTURE_ONLY_GUIDE } from '../../src/constants';
+import { OutputFormatterService } from '@/services/OutputFormatterService';
+import { FileSystemService } from '@/services/FileSystemService';
+import { PatternMatcher } from '@/utils/patternMatcher';
+import { TreeItem, FastStructConfig } from '@/types';
+import { AI_STRUCTURE_GUIDE, STRUCTURE_ONLY_GUIDE } from '@/constants';
 
 // Mock de servicios
-jest.mock('../../src/services/FileSystemService');
-jest.mock('../../src/utils/patternMatcher');
+jest.mock('@/services/FileSystemService');
+jest.mock('@/utils/patternMatcher');
 
 describe('OutputFormatterService', () => {
   let service: OutputFormatterService;

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { StructureGeneratorService } from '../services/StructureGeneratorService';
-import { ConfigurationService } from '../services/ConfigurationService';
-import { Logger } from '../logger';
+import { StructureGeneratorService } from '@/services/StructureGeneratorService';
+import { ConfigurationService } from '@/services/ConfigurationService';
+import { Logger } from '@/logger';
 
 /**
  * Registra todos los comandos relacionados con la generación de estructura.
