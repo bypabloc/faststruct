@@ -1,18 +1,17 @@
-import { BranchComparisonService } from '../../src/services/BranchComparisonService';
+import { MoveDetectionService } from '../../src/services/MoveDetectionService';
 import { Logger } from '../../src/logger';
 
 // Mock dependencies
 jest.mock('../../src/logger');
-jest.mock('child_process');
-jest.mock('../../src/services/StructureGeneratorService');
-jest.mock('../../src/services/ConfigurationService');
-jest.mock('../../src/utils/patternMatcher');
 
-describe('BranchComparisonService - Context Detection', () => {
-  let service: BranchComparisonService;
+describe('MoveDetectionService - Context Detection', () => {
+  let service: MoveDetectionService;
 
   beforeEach(() => {
-    service = BranchComparisonService.getInstance();
+    // Reset singleton instance
+    (MoveDetectionService as any).instance = undefined;
+    
+    service = MoveDetectionService.getInstance();
     jest.clearAllMocks();
   });
 
@@ -32,7 +31,7 @@ describe('BranchComparisonService - Context Detection', () => {
  import path from 'node:path'
  import { fileURLToPath } from 'node:url'`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       // Should only have the deletion, rest are context lines
       expect(result.movedLinesCount).toBe(0);
@@ -60,7 +59,7 @@ describe('BranchComparisonService - Context Detection', () => {
 +    "build": "tsc",
      "format": "prettier"`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       // "build" was moved (identical content)
       // "test" was modified (content changed)
@@ -82,7 +81,7 @@ describe('BranchComparisonService - Context Detection', () => {
  export const VERSION = "1.0.0";
 +export const API_URL = "https://api.example.com";`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       // API_URL was modified AND moved
       expect(result.movedLinesCount).toBe(0); // Not counted as moved because content changed
@@ -107,7 +106,7 @@ index abc123..def456 100644
    const [state, setState] = useState(0);
    return <div>{state}</div>;`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       expect(result.movedLinesCount).toBe(0);
       expect(result.processedDiff).toContain(' import React from \'react\';');
@@ -131,7 +130,7 @@ index abc123..def456 100644
    return true;
  }`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       // Count occurrences of the comment line
       const commentMatches = (result.processedDiff.match(/\/\/ Comment line/g) || []).length;
@@ -155,7 +154,7 @@ index abc123..def456 100644
 +    "version": "1.0.1",
 +    "name": "new-name",`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = service.detectMovedLines(diffContent);
       
       // Both version and name were modified, not just moved
       expect(result.processedDiff).toContain('-    "version": "1.0.0",');

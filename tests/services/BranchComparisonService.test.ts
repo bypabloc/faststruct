@@ -375,7 +375,7 @@ index abcdef..789012 100644
       expect(output).toContain('# Estructura de archivos - Comparación entre ramas');
       expect(output).toContain('**Rama base:** main');
       expect(output).toContain('**Rama con cambios:** feature/test');
-      expect(output).toContain('## Patrones de exclusión aplicados:');
+      expect(output).toContain('## Leyenda de símbolos:');
       expect(output).toContain('## Resumen');
       expect(output).toContain('- **Total archivos modificados:** 3');
       expect(output).toContain('- **Líneas agregadas:** 15');

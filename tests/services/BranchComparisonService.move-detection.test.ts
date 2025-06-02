@@ -1,18 +1,21 @@
-import { BranchComparisonService } from '../../src/services/BranchComparisonService';
+import { MoveDetectionService } from '../../src/services/MoveDetectionService';
+import { FileTreeService } from '../../src/services/FileTreeService';
 import { Logger } from '../../src/logger';
 
 // Mock dependencies
 jest.mock('../../src/logger');
-jest.mock('child_process');
-jest.mock('../../src/services/StructureGeneratorService');
-jest.mock('../../src/services/ConfigurationService');
-jest.mock('../../src/utils/patternMatcher');
 
-describe('BranchComparisonService - Move Detection', () => {
-  let service: BranchComparisonService;
+describe('MoveDetectionService - Move Detection', () => {
+  let moveService: MoveDetectionService;
+  let treeService: FileTreeService;
 
   beforeEach(() => {
-    service = BranchComparisonService.getInstance();
+    // Reset singleton instances
+    (MoveDetectionService as any).instance = undefined;
+    (FileTreeService as any).instance = undefined;
+    
+    moveService = MoveDetectionService.getInstance();
+    treeService = FileTreeService.getInstance();
     jest.clearAllMocks();
   });
 
@@ -32,7 +35,7 @@ index 0000000..1234567
 +import fs from 'node:fs'
 +import path from 'node:path'`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       expect(result.movedLinesCount).toBe(0); // No moved lines in new files
       expect(result.processedDiff).toContain('+// scripts/generate-svg-icons.js');
@@ -48,7 +51,7 @@ index 0000000..1234567
  // Rest of the file content
  import something from 'somewhere'`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       expect(result.movedLinesCount).toBe(0);
       expect(result.processedDiff).toContain('-/* eslint-disable enforce-typescript-only/enforce-typescript-only */');
@@ -65,7 +68,7 @@ index 0000000..1234567
 +    "build": "nuxt build",
      "typecheck": "tsc --noEmit"`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       expect(result.movedLinesCount).toBe(1); // "build" line was moved
       expect(result.processedDiff).toContain('○    "build": "nuxt build",');
@@ -82,7 +85,7 @@ index 0000000..1234567
  // Reglas originales
  const enforceScriptSetupTs = await import('./rules/enforce-script-setup-ts.js')`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       // Context lines should be preserved with space prefix
       expect(result.processedDiff).toContain(' ]');
@@ -103,7 +106,7 @@ index 0000000..1234567
 +    "@nuxt/schema": "^3.17.4",
 +    "@nuxt/scripts": "0.11.7",`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       // Context lines (unchanged)
       expect(result.processedDiff).toContain('     "@nuxt/fonts": "0.11.4",');
@@ -132,7 +135,7 @@ index 0000000..1234567
 + */
 +import fs from 'node:fs'`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       // No lines should be detected as moved because they're all different
       expect(result.movedLinesCount).toBe(0);
@@ -148,7 +151,7 @@ index 0000000..1234567
 +new line
  context line`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       // Hunk headers should be removed
       expect(result.processedDiff).not.toContain('@@');
@@ -165,7 +168,7 @@ index 0000000..1234567
 +    "seo:validate": "pnpm generate:sitemap && echo 'Sitemap validado correctamente'",
 -    "@nuxt/eslint": "1.4.0",`;
 
-      const result = (service as any).detectMovedLines(diffContent);
+      const result = moveService.detectMovedLines(diffContent);
       
       // seo:validate should be shown as added (incorrectly placed in dependencies)
       expect(result.processedDiff).toContain('+    "seo:validate":');
@@ -186,7 +189,7 @@ index 0000000..1234567
 + */
 +import fs from 'node:fs'`;
 
-      const result = (service as any).analyzeDiffStatisticsWithMoveDetection(diffContent);
+      const result = moveService.analyzeDiffStatisticsWithMoveDetection(diffContent);
       
       expect(result.movedLines).toBe(0);
       expect(result.additions).toBe(5); // All lines are truly new
@@ -202,7 +205,7 @@ index 0000000..1234567
 +    "new-script": "echo 'new'",
 -    "old-script": "echo 'old'",`;
 
-      const result = (service as any).analyzeDiffStatisticsWithMoveDetection(diffContent);
+      const result = moveService.analyzeDiffStatisticsWithMoveDetection(diffContent);
       
       expect(result.movedLines).toBe(1); // "build" was moved
       expect(result.additions).toBe(1); // Only "new-script" is truly new
@@ -219,7 +222,7 @@ index 0000000..1234567
 +    "script1": "value1",
 +    "script3": "value3",`;
 
-      const result = (service as any).analyzeDiffStatisticsWithMoveDetection(diffContent);
+      const result = moveService.analyzeDiffStatisticsWithMoveDetection(diffContent);
       
       expect(result.movedLines).toBe(3); // All three scripts were moved
       expect(result.additions).toBe(0); // No truly new lines
@@ -234,7 +237,7 @@ index 0000000..1234567
 +new line
  context`;
 
-      const result = (service as any).enhanceDiffWithMoveDetection(diffContent);
+      const result = moveService.enhanceDiffWithMoveDetection(diffContent);
       
       expect(result).not.toContain('# Nota:');
       expect(result).toContain('-old line');
@@ -254,7 +257,7 @@ index 0000000..1234567
         }
       };
 
-      const result = (service as any).formatTreeStructureWithChanges(tree);
+      const result = treeService.formatTreeStructureWithChanges(tree);
       
       expect(result).toContain('📝 package.json (+42, -35, ○7)');
     });
@@ -270,7 +273,7 @@ index 0000000..1234567
         }
       };
 
-      const result = (service as any).formatTreeStructureWithChanges(tree);
+      const result = treeService.formatTreeStructureWithChanges(tree);
       
       expect(result).toContain('📝 config.js (+10, -5)');
       expect(result).not.toContain('○0');
