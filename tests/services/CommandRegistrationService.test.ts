@@ -147,15 +147,21 @@ describe('CommandRegistrationService', () => {
       const healthCheckCallback = healthCheckCall![1] as () => Promise<void>;
       await healthCheckCallback();
       
+      // Ahora showInformationMessage se llama con dos parámetros: mensaje y botón
       expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Total comandos registrados: 3')
+        expect.stringContaining('Total comandos registrados: 3'),
+        'Ver Output'
       );
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Versión: 0.0.12')
-      );
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Estado: ✅ Activo')
-      );
+      
+      // Verificar que el mensaje contenga toda la información esperada
+      const callArgs = (vscode.window.showInformationMessage as jest.Mock).mock.calls[0];
+      const message = callArgs[0] as string;
+      
+      expect(message).toContain('Total comandos registrados: 3');
+      expect(message).toContain('Debug Mode:');
+      expect(message).toContain('Versión: 0.0.12');
+      expect(message).toContain('Estado: ✅ Activo');
+      expect(message).toContain('⚠️ Importante: Revisa el panel Output');
     });
   });
 
