@@ -112,7 +112,7 @@ describe('OutputFormatterService', () => {
       const result = service.formatFullOutput(mockItems, '/test/project', mockConfig, true);
       
       expect(result).toContain(AI_STRUCTURE_GUIDE);
-      expect(result).toContain('Path: src/index.js');
+      expect(result).toMatch(/Path: src[/\\]index\.js/);
       expect(result).toContain('console.log("Hello");');
     });
 
@@ -129,9 +129,9 @@ describe('OutputFormatterService', () => {
       
       const result = service.formatFullOutput(mockItems, '/test/project', mockConfig, true);
       
-      // Should not contain actual file paths (Path: src/index.js)
-      expect(result).not.toContain('Path: src/index.js');
-      expect(result).not.toContain('Path: README.md');
+      // Should not contain actual file paths (Path: src/index.js or src\index.js)
+      expect(result).not.toMatch(/Path: src[/\\]index\.js/);
+      expect(result).not.toMatch(/Path: README\.md/);
       // But the guide text explaining the format is OK
       expect(result).toContain('AI File Structure Analysis Guide');
     });
@@ -278,7 +278,7 @@ describe('OutputFormatterService', () => {
       
       const result = (service as any).generateFileContents(items, '/test', mockConfig);
       
-      expect(result).toContain('Path: src/index.js');
+      expect(result).toMatch(/Path: src[/\\]index\.js/);
       expect(result).toContain('Content:\n```\nconst app = "Hello";\n```');
     });
 
