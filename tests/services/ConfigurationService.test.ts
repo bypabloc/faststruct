@@ -87,7 +87,7 @@ describe('ConfigurationService', () => {
       const testConfig = service.getDefaultConfig();
       testConfig.debug = true;
 
-      const mockUpdate = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+      const mockUpdate = jest.fn<(key: string, value: any, target?: any) => Promise<void>>().mockResolvedValue(undefined);
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
         get: jest.fn((key: string, defaultValue?: any) => {
           if (key === 'config') {
@@ -111,7 +111,7 @@ describe('ConfigurationService', () => {
     it('debe permitir guardar globalmente', async () => {
       const testConfig = service.getDefaultConfig();
       
-      const mockUpdate = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+      const mockUpdate = jest.fn<(key: string, value: any, target?: any) => Promise<void>>().mockResolvedValue(undefined);
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
         get: jest.fn((key: string, defaultValue?: any) => {
           if (key === 'config') {
