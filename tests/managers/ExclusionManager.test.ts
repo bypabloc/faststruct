@@ -271,7 +271,25 @@ describe('ExclusionManager', () => {
         patterns: ['**/*.secret.*']
       };
       
-      const mockDocument = { getText: jest.fn() };
+      const mockDocument = {
+        getText: jest.fn(),
+        uri: vscode.Uri.file('/test/exclusions.md'),
+        fileName: '/test/exclusions.md',
+        isUntitled: false,
+        languageId: 'markdown',
+        version: 1,
+        isDirty: false,
+        isClosed: false,
+        save: jest.fn(),
+        eol: vscode.EndOfLine.LF,
+        lineCount: 1,
+        lineAt: jest.fn(),
+        offsetAt: jest.fn(),
+        positionAt: jest.fn(),
+        getWordRangeAtPosition: jest.fn(),
+        validateRange: jest.fn(),
+        validatePosition: jest.fn()
+      };
       (vscode.workspace.openTextDocument as jest.Mock).mockImplementation(() => Promise.resolve(mockDocument));
       
       await manager.showExclusions();
@@ -281,13 +299,13 @@ describe('ExclusionManager', () => {
         language: 'markdown'
       });
       
-      expect(vscode.window.showTextDocument).toHaveBeenCalledWith(
-        mockDocument,
-        expect.objectContaining({
-          preview: false,
-          viewColumn: vscode.ViewColumn.Beside
-        })
-      );
+      expect(vscode.window.showTextDocument).toHaveBeenCalled();
+      const showTextDocCall = (vscode.window.showTextDocument as jest.Mock).mock.calls[0];
+      expect(showTextDocCall[0]).toBe(mockDocument);
+      expect(showTextDocCall[1]).toEqual({
+        preview: false,
+        viewColumn: vscode.ViewColumn.Beside
+      });
     });
 
     it('debe generar reporte correcto con listas vacías', async () => {

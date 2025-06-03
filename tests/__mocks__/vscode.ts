@@ -69,7 +69,7 @@ const vscode = {
       dispose: jest.fn(),
     })),
     activeTextEditor: undefined,
-    showTextDocument: jest.fn(() => Promise.resolve({
+    showTextDocument: jest.fn((_document: any, _options?: any) => Promise.resolve({
       document: {
         getText: jest.fn(() => ''),
       },
@@ -108,7 +108,7 @@ const vscode = {
         }
         return defaultValue;
       }),
-      update: jest.fn(() => Promise.resolve(undefined)),
+      update: jest.fn((_key: string, _value: any, _target?: any) => Promise.resolve(undefined)),
       inspect: jest.fn(() => ({
         globalValue: undefined,
         workspaceValue: undefined,
@@ -173,6 +173,12 @@ const vscode = {
     Beside: -2,
   },
 
+  // EndOfLine
+  EndOfLine: {
+    LF: 1,
+    CRLF: 2,
+  },
+
   // Extension context mock
   ExtensionContext: class {
     subscriptions: any[] = [];
@@ -183,7 +189,7 @@ const vscode = {
     };
     globalState = {
       get: jest.fn((_key: string, defaultValue?: any) => defaultValue),
-      update: jest.fn(() => Promise.resolve(undefined)),
+      update: jest.fn((_key: string, _value: any, _target?: any) => Promise.resolve(undefined)),
       keys: jest.fn(() => Promise.resolve([])),
       setKeysForSync: jest.fn(),
     };
