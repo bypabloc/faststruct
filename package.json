@@ -2,7 +2,7 @@
   "name": "faststruct",
   "displayName": "FastStruct",
   "description": "VS Code extension to quickly visualize and document your project's file structure",
-  "version": "0.0.12",
+  "version": "0.1.0",
   "publisher": "the-full-stack",
   "author": {
     "name": "Pablo Contreras"
