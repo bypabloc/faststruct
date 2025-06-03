@@ -10,7 +10,7 @@ VSCode extension to quickly create project structures.
 ## Requirements
 
 - Node.js (v16 or higher)
-- npm (v7 or higher)
+- pnpm (v8 or higher)
 - Visual Studio Code (v1.60.0 or higher)
 
 ## Installation for Development
@@ -25,15 +25,15 @@ cd faststruct
 2. Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Compile the extension
 
 ```bash
-npm run compile
+pnpm run compile
 # or for continuous compilation during development:
-npm run watch
+pnpm run watch
 ```
 
 ## Running the Extension
@@ -46,7 +46,7 @@ There are two ways to run the extension:
 
 2. Press `F5` to start debugging
    - This will automatically:
-     - Run `npm run vscode:prepublish`
+     - Run `pnpm run vscode:prepublish`
      - Compile the TypeScript code
      - Open a new VS Code window with the extension loaded
 
@@ -55,7 +55,7 @@ There are two ways to run the extension:
 1. Build the VSIX package
 
 ```bash
-npm run vscode:prepublish
+pnpm run vscode:prepublish
 npx vsce package
 ```
 
@@ -86,10 +86,10 @@ faststruct/
 
 ### Available Scripts
 
-- `npm run compile`: One-time compilation
-- `npm run watch`: Continuous compilation
-- `npm run vscode:prepublish`: Prepare extension for publishing
-- `npm run lint`: Run ESLint
+- `pnpm run compile`: One-time compilation
+- `pnpm run watch`: Continuous compilation
+- `pnpm run vscode:prepublish`: Prepare extension for publishing
+- `pnpm run lint`: Run ESLint
 
 ### Debugging
 

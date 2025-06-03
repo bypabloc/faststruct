@@ -1,0 +1,20 @@
+# Conventional commit message validation
+commit_regex='^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,100}$'
+commit_msg=$(cat "$1")
+
+if ! echo "$commit_msg" | grep -qE "$commit_regex"; then
+  echo "❌ Invalid commit message format!"
+  echo ""
+  echo "Your commit message: '$commit_msg'"
+  echo ""
+  echo "✅ Valid format: <type>(<scope>): <subject>"
+  echo ""
+  echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add new exclusion pattern support"
+  echo "  fix(webview): resolve state persistence issue"
+  echo "  docs: update README with installation guide"
+  echo ""
+  exit 1
+fi
