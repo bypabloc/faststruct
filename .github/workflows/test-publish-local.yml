@@ -1,16 +1,13 @@
-name: Deploy Extension (Manual)
+name: Test Deploy Extension (Local)
 
 on:
   workflow_dispatch:
-    inputs:
-      skip_version_check:
-        description: 'Skip automatic version check'
-        required: false
-        default: false
-        type: boolean
+  push:
+    branches:
+      - '**'
 
 jobs:
-  deploy:
+  test-deploy:
     runs-on: ubuntu-latest
     
     steps:
@@ -54,9 +51,15 @@ jobs:
         run: pnpm add -g @vscode/vsce
         
       - name: Package extension
-        run: vsce package --no-dependencies
+        run: pnpm run package
         
-      - name: Publish to VS Code Marketplace
-        run: vsce publish -p ${{ secrets.VSCE_PAT }} --no-dependencies
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Check package created
+        run: |
+          echo "Checking for VSIX file..."
+          ls -la *.vsix
+          
+      - name: Simulate publish (dry-run)
+        run: |
+          echo "Would publish to VS Code Marketplace"
+          echo "In real workflow, this would run: vsce publish -p \$VSCE_PAT"
+          echo "Package ready: $(ls *.vsix)"

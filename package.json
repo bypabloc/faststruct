@@ -20,6 +20,7 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest --testPathPattern=tests/.*\\.test\\.ts$",
     "pretest": "pnpm run compile",
+    "package": "vsce package --no-dependencies",
     "pkg:install": "rm -rf node_modules && rm -rf out && pnpm store prune && pnpm install",
     "pkg:reinstall": "rm -rf node_modules && rm -rf out && rm -f pnpm-lock.yaml && pnpm store prune && pnpm install",
     "prepare": "husky"
@@ -535,6 +536,12 @@
     "lint-staged": "^16.1.0",
     "ts-jest": "^29.3.4",
     "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@vscode/vsce-sign",
+      "keytar"
+    ]
   },
   "icon": "assets/images/icon.png"
 }
