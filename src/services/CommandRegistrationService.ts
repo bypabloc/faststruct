@@ -91,19 +91,49 @@ export class CommandRegistrationService {
         const commands = await vscode.commands.getCommands();
         const faststructCommands = commands.filter(cmd => cmd.startsWith('faststruct.'));
         
+        // Obtener configuración actual
+        const config = vscode.workspace.getConfiguration('faststruct');
+        const faststructConfig = config.get('config', {}) as any;
+        const isDebugEnabled = faststructConfig.debug === true;
+        
+        // Forzar mostrar el canal de output
+        Logger.show();
+        
+        // Log siempre para verificar que funciona (usando console.log y Logger.error)
+        console.log('[FastStruct] Health Check - Debug:', isDebugEnabled);
+        console.log('[FastStruct] Config completa:', JSON.stringify(faststructConfig, null, 2));
+        
+        // Usar Logger.error para que siempre se vea en el Output
+        Logger.error(`[HEALTH CHECK] Debug Mode: ${isDebugEnabled ? 'ENABLED ✓' : 'DISABLED ✗'} (Esto es un test, no un error)`);
+        
         const message = `
 FastStruct Health Check:
 - Total comandos registrados: ${faststructCommands.length}
-- Comandos: ${faststructCommands.join(', ')}
+- Debug Mode: ${isDebugEnabled ? 'ENABLED ✓' : 'DISABLED ✗'}
 - Versión: ${context.extension.packageJSON.version}
 - Estado: ✅ Activo
+
+⚠️ Importante: Revisa el panel Output → FastStruct Debug
         `.trim();
         
-        vscode.window.showInformationMessage(message);
-        Logger.info('Health check ejecutado', { 
-          commandCount: faststructCommands.length,
-          version: context.extension.packageJSON.version 
+        vscode.window.showInformationMessage(message, 'Ver Output').then(selection => {
+          if (selection === 'Ver Output') {
+            Logger.show();
+          }
         });
+        
+        // Si debug está habilitado, hacer logs normales
+        if (isDebugEnabled) {
+          Logger.info('Health check ejecutado con DEBUG habilitado', { 
+            commandCount: faststructCommands.length,
+            version: context.extension.packageJSON.version,
+            config: faststructConfig
+          });
+          Logger.debug('Configuración completa:', faststructConfig);
+        } else {
+          // Ayudar al usuario a habilitar debug
+          Logger.error('[HEALTH CHECK] Para ver logs de debug, configura faststruct.config.debug: true');
+        }
       }
     );
     
