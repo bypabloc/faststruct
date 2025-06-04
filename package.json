@@ -12,7 +12,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
-    "compile": "tsc -p ./ && tsc-alias -p tsconfig.json",
+    "compile": "tsc -p ./ && tsc-alias -p tsconfig.json && copyfiles -u 1 \"src/**/*.{html,css}\" out",
     "watch": "concurrently \"tsc -watch -p ./\" \"tsc-alias -w -p tsconfig.json\"",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
@@ -532,6 +532,7 @@
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
     "concurrently": "^9.1.2",
+    "copyfiles": "^2.4.1",
     "eslint": "^9.28.0",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
