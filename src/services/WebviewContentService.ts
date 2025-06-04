@@ -38,7 +38,7 @@ export class WebviewContentService {
   ): string {
     // Generar URIs para los recursos
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(extensionUri, 'src', 'templates', 'webview', 'configWebview.css')
+      vscode.Uri.joinPath(extensionUri, 'out', 'templates', 'webview', 'configWebview.css')
     );
     
     // Cargar el template HTML
@@ -67,7 +67,7 @@ export class WebviewContentService {
   private loadTemplate(filename: string, extensionUri: vscode.Uri): string {
     const templatePath = vscode.Uri.joinPath(
       extensionUri,
-      'src',
+      'out',
       'templates',
       'webview',
       filename
