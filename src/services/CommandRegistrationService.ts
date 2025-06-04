@@ -70,6 +70,9 @@ export class CommandRegistrationService {
       // Registrar comando de verificación de salud
       this.registerHealthCheckCommand(context);
       
+      // Registrar comando para activar debug rápidamente
+      this.registerEnableDebugCommand(context);
+      
       Logger.functionEnd('registerAllCommands', 'Todos los comandos registrados exitosamente');
     } catch (error) {
       Logger.error('Error registrando comandos', error);
@@ -188,5 +191,47 @@ FastStruct Health Check:
     
     Logger.info('Todos los comandos verificados correctamente');
     return true;
+  }
+  
+  /**
+   * Registra un comando para activar el modo debug rápidamente.
+   * 
+   * @param context - Contexto de la extensión
+   * @author Pablo Contreras
+   * @created 2025/01/30
+   */
+  private registerEnableDebugCommand(context: vscode.ExtensionContext): void {
+    const disposable = vscode.commands.registerCommand(
+      'faststruct.enableDebug',
+      async () => {
+        try {
+          const config = vscode.workspace.getConfiguration('faststruct');
+          const currentConfig = config.get('config', {}) as any;
+          
+          // Activar debug
+          const updatedConfig = { ...currentConfig, debug: true };
+          await config.update('config', updatedConfig, vscode.ConfigurationTarget.Workspace);
+          
+          // Confirmar que se activó
+          Logger.forceShow('🐛 Modo DEBUG activado! Los logs ahora serán visibles en este canal.');
+          Logger.info('Debug mode habilitado por el usuario via comando');
+          
+          vscode.window.showInformationMessage(
+            '✅ Modo DEBUG activado! Revisa el panel Output → FastStruct Debug para ver los logs.',
+            'Ver Logs'
+          ).then(selection => {
+            if (selection === 'Ver Logs') {
+              Logger.show();
+            }
+          });
+          
+        } catch (error) {
+          Logger.error('Error activando el modo debug', error);
+          vscode.window.showErrorMessage('Error al activar debug mode. Revisa el Output para más detalles.');
+        }
+      }
+    );
+    
+    context.subscriptions.push(disposable);
   }
 }

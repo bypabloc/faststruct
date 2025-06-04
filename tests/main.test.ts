@@ -57,7 +57,7 @@ describe('main.ts', () => {
         'Congratulations, your extension "faststruct" is now active!'
       );
       expect(Logger.info).toHaveBeenCalledWith('FastStruct extension activada');
-      expect(Logger.show).toHaveBeenCalled();
+      expect(Logger.forceShow).toHaveBeenCalled();
     });
 
     it('debe registrar todos los comandos', async () => {

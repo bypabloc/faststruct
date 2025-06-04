@@ -90,8 +90,8 @@ describe('CommandRegistrationService', () => {
     it('debe agregar disposables al contexto', () => {
       service.registerAllCommands(mockContext);
       
-      // 3 de structure + 2 de exclusion + 1 de config + 4 de branch comparison + 1 de health check = 11
-      expect(mockContext.subscriptions).toHaveLength(11);
+      // 3 de structure + 2 de exclusion + 1 de config + 4 de branch comparison + 1 de health check + 1 de enable debug = 12
+      expect(mockContext.subscriptions).toHaveLength(12);
     });
 
     it('debe registrar el comando health check', () => {

@@ -42,7 +42,8 @@
     "onCommand:faststruct.compareBranches",
     "onCommand:faststruct.compareBranchesWithCurrent",
     "onCommand:faststruct.compareBranchesStructure",
-    "onCommand:faststruct.listBranches"
+    "onCommand:faststruct.listBranches",
+    "onCommand:faststruct.enableDebug"
   ],
   "main": "./out/main.js",
   "contributes": {
@@ -160,6 +161,12 @@
         "command": "faststruct.healthCheck",
         "title": "Health Check",
         "category": "FastStruct"
+      },
+      {
+        "command": "faststruct.enableDebug",
+        "title": "Activar Modo Debug",
+        "category": "FastStruct",
+        "icon": "$(debug)"
       },
       {
         "command": "faststruct.compareBranches",
