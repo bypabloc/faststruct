@@ -141,6 +141,21 @@ export class Logger {
     }
     
     /**
+     * Fuerza mostrar un mensaje en el canal de salida independientemente del modo debug.
+     * Útil para mensajes importantes que siempre deben ser visibles.
+     * 
+     * @param message - Mensaje a mostrar
+     * @author Pablo Contreras
+     * @created 2025/01/30
+     */
+    public static forceShow(message: string): void {
+        const formattedMessage = this.formatMessage('INFO', message);
+        console.log(`FastStruct: ${formattedMessage}`);
+        this.getOutputChannel().appendLine(formattedMessage);
+        this.getOutputChannel().show();
+    }
+    
+    /**
      * Limpia el canal de salida.
      * 
      * @author Pablo Contreras

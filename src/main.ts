@@ -15,7 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Inicializar el logger
   Logger.info("FastStruct extension activada");
-  Logger.show(); // Mostrar el canal de output si debug está habilitado
+  
+  // Mostrar mensaje de activación SIEMPRE (independiente del modo debug)
+  Logger.forceShow("FastStruct extension activada exitosamente! Para ver logs detallados, habilita 'faststruct.config.debug' en Settings");
 
   try {
     // Registrar todos los comandos usando el servicio
