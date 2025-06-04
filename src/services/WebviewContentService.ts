@@ -37,9 +37,26 @@ export class WebviewContentService {
     nonce: string
   ): string {
     // Generar URIs para los recursos
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(extensionUri, 'src', 'templates', 'webview', 'configWebview.css')
-    );
+    // Intentar encontrar el CSS en múltiples ubicaciones
+    let styleUri: vscode.Uri | undefined;
+    const cssPaths = [
+      vscode.Uri.joinPath(extensionUri, 'out', 'templates', 'webview', 'configWebview.css'),
+      vscode.Uri.joinPath(extensionUri, 'src', 'templates', 'webview', 'configWebview.css'),
+      vscode.Uri.joinPath(extensionUri, 'templates', 'webview', 'configWebview.css')
+    ];
+    
+    for (const cssPath of cssPaths) {
+      if (fs.existsSync(cssPath.fsPath)) {
+        styleUri = webview.asWebviewUri(cssPath);
+        Logger.info(`CSS encontrado en: ${cssPath.fsPath}`);
+        break;
+      }
+    }
+    
+    if (!styleUri) {
+      Logger.error('No se pudo encontrar configWebview.css');
+      styleUri = webview.asWebviewUri(cssPaths[0]); // Usar la primera ruta como fallback
+    }
     
     // Cargar el template HTML
     const htmlTemplate = this.loadTemplate('configWebview.html', extensionUri);
@@ -65,20 +82,34 @@ export class WebviewContentService {
    * @created 2025/01/31
    */
   private loadTemplate(filename: string, extensionUri: vscode.Uri): string {
-    const templatePath = vscode.Uri.joinPath(
-      extensionUri,
-      'src',
-      'templates',
-      'webview',
-      filename
-    );
+    // Intentar múltiples rutas posibles
+    const possiblePaths = [
+      // Producción (VSIX instalado)
+      vscode.Uri.joinPath(extensionUri, 'out', 'templates', 'webview', filename),
+      // Desarrollo (si por alguna razón se ejecuta desde src)
+      vscode.Uri.joinPath(extensionUri, 'src', 'templates', 'webview', filename),
+      // Legacy path (por compatibilidad)
+      vscode.Uri.joinPath(extensionUri, 'templates', 'webview', filename)
+    ];
     
-    try {
-      return fs.readFileSync(templatePath.fsPath, 'utf8');
-    } catch (error) {
-      Logger.error(`Error cargando template ${filename}`, error);
-      return '';
+    for (const templatePath of possiblePaths) {
+      try {
+        if (fs.existsSync(templatePath.fsPath)) {
+          Logger.info(`Template ${filename} encontrado en: ${templatePath.fsPath}`);
+          return fs.readFileSync(templatePath.fsPath, 'utf8');
+        }
+      } catch (error) {
+        // Continuar con la siguiente ruta
+      }
     }
+    
+    Logger.error(`No se pudo encontrar el template ${filename} en ninguna ruta conocida`);
+    Logger.error(`Extension URI: ${extensionUri.fsPath}`);
+    Logger.error(`Rutas intentadas:`);
+    possiblePaths.forEach(path => {
+      Logger.error(`  - ${path.fsPath}`);
+    });
+    return '';
   }
   
   /**

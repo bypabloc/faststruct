@@ -1,12 +1,12 @@
 .vscode/**
 .vscode-test/**
+src/**
 test/**
 tests/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
 **/jsconfig.json
-**/*.map
 **/.eslintrc.json
 .pnpm-store/**
 node_modules/**
@@ -37,3 +37,6 @@ techContext.md
 coverage/**
 .env*
 *.vsix
+**/*.ts
+!**/*.d.ts
+scripts/**

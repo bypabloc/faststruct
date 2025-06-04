@@ -104,19 +104,48 @@ export class CommandRegistrationService {
         
         // Log siempre para verificar que funciona (usando console.log y Logger.error)
         console.log('[FastStruct] Health Check - Debug:', isDebugEnabled);
-        console.log('[FastStruct] Config completa:', JSON.stringify(faststructConfig, null, 2));
+        console.log('[FastStruct] Extension Path:', context.extensionPath);
+        console.log('[FastStruct] Extension URI:', context.extensionUri.toString());
+        
+        // Verificar archivos críticos
+        const fs = require('fs');
+        const path = require('path');
+        const criticalFiles = [
+          'out/main.js',
+          'out/templates/webview/configWebview.html',
+          'out/templates/webview/configWebview.css',
+          'out/templates/webview/configWebview.js'
+        ];
+        
+        Logger.error('[HEALTH CHECK] Extension Path: ' + context.extensionPath);
+        Logger.error('[HEALTH CHECK] Extension URI: ' + context.extensionUri.toString());
+        Logger.error('[HEALTH CHECK] Verificando archivos críticos:');
+        
+        for (const file of criticalFiles) {
+          const fullPath = path.join(context.extensionPath, file);
+          const exists = fs.existsSync(fullPath);
+          Logger.error(`[HEALTH CHECK]   ${file}: ${exists ? '✓ EXISTE' : '✗ NO EXISTE'}`);
+          if (!exists && file.includes('out/')) {
+            // Verificar si existe en src/
+            const srcPath = fullPath.replace('/out/', '/src/').replace('.js', '.ts');
+            if (fs.existsSync(srcPath)) {
+              Logger.error(`[HEALTH CHECK]     -> Encontrado en src: ${srcPath}`);
+            }
+          }
+        }
         
         // Usar Logger.error para que siempre se vea en el Output
-        Logger.error(`[HEALTH CHECK] Debug Mode: ${isDebugEnabled ? 'ENABLED ✓' : 'DISABLED ✗'} (Esto es un test, no un error)`);
+        Logger.error(`[HEALTH CHECK] Debug Mode: ${isDebugEnabled ? 'ENABLED ✓' : 'DISABLED ✗'}`);
         
         const message = `
 FastStruct Health Check:
 - Total comandos registrados: ${faststructCommands.length}
 - Debug Mode: ${isDebugEnabled ? 'ENABLED ✓' : 'DISABLED ✗'}
 - Versión: ${context.extension.packageJSON.version}
+- Extension Path: ${context.extensionPath}
 - Estado: ✅ Activo
 
-⚠️ Importante: Revisa el panel Output → FastStruct Debug
+⚠️ Importante: Revisa el panel Output → FastStruct Debug para ver detalles de archivos
         `.trim();
         
         vscode.window.showInformationMessage(message, 'Ver Output').then(selection => {
@@ -130,6 +159,7 @@ FastStruct Health Check:
           Logger.info('Health check ejecutado con DEBUG habilitado', { 
             commandCount: faststructCommands.length,
             version: context.extension.packageJSON.version,
+            extensionPath: context.extensionPath,
             config: faststructConfig
           });
           Logger.debug('Configuración completa:', faststructConfig);

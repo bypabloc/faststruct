@@ -1,0 +1,55 @@
+{
+    "faststruct.config": {
+        "debug": true,
+        "exclude": {
+            "folders": [
+                "node_modules",
+                ".git",
+                "dist",
+                "build",
+                ".tmp",
+                "out",
+                ".astro",
+                ".unlighthouse"
+            ],
+            "files": [
+                "*.log",
+                "*.lock",
+                "package-lock.json",
+                "pnpm-lock.yaml",
+                "yarn.lock"
+            ],
+            "advanced": {
+                "patterns": [
+                    "**/*.min.js",
+                    "**/*.generated.*"
+                ],
+                "specificFiles": [],
+                "specificFolders": [],
+                "regexPatterns": []
+            }
+        },
+        "excludeContent": {
+            "files": [
+                "*.config.js",
+                "db/data.ts"
+            ],
+            "folders": [
+                "src/config",
+                "tests"
+            ],
+            "patterns": [
+                "*.vsix",
+                "**/*.secret.*",
+                "**/.secrets**",
+                "**/*/.env**"
+            ]
+        },
+        "output": {
+            "includeContent": true,
+            "includeEmptyFolders": true,
+            "includeFileSize": false,
+            "includeLastModified": false
+        }
+    }
+}

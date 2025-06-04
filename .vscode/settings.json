@@ -38,6 +38,12 @@
         "**/*.webp",
         "**/*.svg"
       ]
+    },
+    "output": {
+      "includeContent": true,
+      "includeEmptyFolders": true,
+      "includeFileSize": false,
+      "includeLastModified": false
     }
   }
 }
