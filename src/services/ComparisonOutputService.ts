@@ -1,9 +1,9 @@
-import { Logger } from '@/logger';
-import { FileChange } from '@/services/DiffAnalysisService';
-import { GitOperationsService } from '@/services/GitOperationsService';
-import { FileContentService, ComparisonOptions } from '@/services/FileContentService';
-import { FileTreeService } from '@/services/FileTreeService';
-import { MoveDetectionService } from '@/services/MoveDetectionService';
+import { Logger } from '../logger';
+import { FileChange } from './DiffAnalysisService';
+import { GitOperationsService } from './GitOperationsService';
+import { FileContentService, ComparisonOptions } from './FileContentService';
+import { FileTreeService } from './FileTreeService';
+import { MoveDetectionService } from './MoveDetectionService';
 
 export interface BranchComparison {
   sourceBranch: string;

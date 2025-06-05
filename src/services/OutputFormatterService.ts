@@ -1,10 +1,10 @@
 import * as path from 'path';
-import { TreeItem, FastStructConfig } from '@/types';
-import { FileSystemService } from '@/services/FileSystemService';
-import { PatternMatcher } from '@/utils/patternMatcher';
-import { AI_STRUCTURE_GUIDE, STRUCTURE_ONLY_GUIDE } from '@/constants';
-import { formatFileSize } from '@/utils/fileUtils';
-import { Logger } from '@/logger';
+import { TreeItem, FastStructConfig } from '../types';
+import { FileSystemService } from './FileSystemService';
+import { PatternMatcher } from '../utils/patternMatcher';
+import { AI_STRUCTURE_GUIDE, STRUCTURE_ONLY_GUIDE } from '../constants';
+import { formatFileSize } from '../utils/fileUtils';
+import { Logger } from '../logger';
 
 /**
  * Servicio para formatear la salida de la estructura.

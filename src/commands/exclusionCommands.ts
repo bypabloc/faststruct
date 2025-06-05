@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ExclusionManager } from '@/managers/ExclusionManager';
-import { Logger } from '@/logger';
+import { ExclusionManager } from '../managers/ExclusionManager';
+import { Logger } from '../logger';
 
 /**
  * Registra todos los comandos relacionados con exclusiones.

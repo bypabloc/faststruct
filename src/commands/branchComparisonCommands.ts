@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { BranchComparisonService } from '@/services/BranchComparisonService';
-import { Logger } from '@/logger';
+import { BranchComparisonService } from '../services/BranchComparisonService';
+import { Logger } from '../logger';
 
 /**
  * Register all branch comparison related commands.

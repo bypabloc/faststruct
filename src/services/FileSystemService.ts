@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { TreeItem, FileReadResult, FastStructConfig } from '@/types';
-import { Logger } from '@/logger';
-import { BINARY_EXTENSIONS } from '@/constants';
-import { PatternMatcher } from '@/utils/patternMatcher';
+import { TreeItem, FileReadResult, FastStructConfig } from '../types';
+import { Logger } from '../logger';
+import { BINARY_EXTENSIONS } from '../constants';
+import { PatternMatcher } from '../utils/patternMatcher';
 
 /**
  * Servicio para manejar operaciones del sistema de archivos.

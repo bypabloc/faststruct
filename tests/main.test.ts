@@ -240,14 +240,16 @@ describe('main.ts', () => {
       
       await activate(mockContext);
       
-      // La activación debe fallar debido al error
-      expect(Logger.error).toHaveBeenCalledWith(
+      // La activación debe continuar exitosamente a pesar del error en el mensaje de bienvenida
+      expect(Logger.info).toHaveBeenCalledWith('FastStruct activado exitosamente');
+      expect(mockCommandService.registerAllCommands).toHaveBeenCalled();
+      
+      // El error del mensaje de bienvenida no debe hacer fallar toda la activación
+      expect(Logger.error).not.toHaveBeenCalledWith(
         'Error durante la activación de FastStruct',
         expect.any(Error)
       );
-      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-        expect.stringContaining('Error al activar FastStruct')
-      );
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
     });
   });
 });

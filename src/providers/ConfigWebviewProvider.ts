@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
-import { Logger } from "@/logger";
-import { ConfigurationService } from "@/services/ConfigurationService";
-import { WebviewContentService } from "@/services/WebviewContentService";
-import { WebviewMessageService } from "@/services/WebviewMessageService";
-import { ProjectStatsService } from "@/services/ProjectStatsService";
+import { Logger } from "../logger";
+import { ConfigurationService } from "../services/ConfigurationService";
+import { WebviewContentService } from "../services/WebviewContentService";
+import { WebviewMessageService } from "../services/WebviewMessageService";
+import { ProjectStatsService } from "../services/ProjectStatsService";
 
 /**
  * Proveedor de webview para la interfaz de configuración de FastStruct.

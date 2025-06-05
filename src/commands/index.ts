@@ -5,7 +5,7 @@
  * @created 2025/01/31
  */
 
-export * from '@/commands/structureCommands';
-export * from '@/commands/exclusionCommands';
-export * from '@/commands/configCommands';
-export * from '@/commands/branchComparisonCommands';
+export * from './structureCommands';
+export * from './exclusionCommands';
+export * from './configCommands';
+export * from './branchComparisonCommands';

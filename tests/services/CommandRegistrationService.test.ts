@@ -59,6 +59,10 @@ describe('CommandRegistrationService', () => {
     // Mock del contexto de extensión
     mockContext = {
       subscriptions: [],
+      extensionPath: '/mock/extension/path',
+      extensionUri: {
+        toString: jest.fn().mockReturnValue('vscode-extension://mock/extension/uri')
+      },
       extension: {
         packageJSON: {
           version: '0.0.12'

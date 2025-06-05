@@ -1,7 +1,7 @@
 import { Minimatch } from 'minimatch';
 import * as path from 'path';
-import { FastStructConfig } from '@/types';
-import { Logger } from '@/logger';
+import { FastStructConfig } from '../types';
+import { Logger } from '../logger';
 
 /**
  * Utilidad para manejar coincidencias de patrones de exclusión.

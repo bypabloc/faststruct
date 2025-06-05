@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { FastStructConfig } from '@/types';
-import { Logger } from '@/logger';
+import { FastStructConfig } from '../types';
+import { Logger } from '../logger';
 
 /**
  * Servicio para manejar la configuración de FastStruct.

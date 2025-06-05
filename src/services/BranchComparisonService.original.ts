@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { Logger } from '@/logger';
-import { StructureGeneratorService } from '@/services/StructureGeneratorService';
-import { ConfigurationService } from '@/services/ConfigurationService';
-import { PatternMatcher } from '@/utils/patternMatcher';
+import { Logger } from '../logger';
+import { StructureGeneratorService } from './StructureGeneratorService';
+import { ConfigurationService } from './ConfigurationService';
+import { PatternMatcher } from '../utils/patternMatcher';
 import * as path from 'path';
 
 const execAsync = promisify(exec);

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { Logger } from "@/logger";
-import { CommandRegistrationService } from "@/services/CommandRegistrationService";
+import { Logger } from "./logger";
+import { CommandRegistrationService } from "./services/CommandRegistrationService";
 
 /**
  * Función de activación híbrida - garantiza activación + funcionalidad completa.

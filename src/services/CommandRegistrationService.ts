@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { Logger } from '@/logger';
-import { registerStructureCommands } from '@/commands/structureCommands';
-import { registerExclusionCommands } from '@/commands/exclusionCommands';
-import { registerConfigCommands } from '@/commands/configCommands';
-import { registerBranchComparisonCommands } from '@/commands/branchComparisonCommands';
+import { Logger } from '../logger';
+import { registerStructureCommands } from '../commands/structureCommands';
+import { registerExclusionCommands } from '../commands/exclusionCommands';
+import { registerConfigCommands } from '../commands/configCommands';
+import { registerBranchComparisonCommands } from '../commands/branchComparisonCommands';
 
 /**
  * Servicio para registrar todos los comandos de la extensión.
@@ -105,7 +105,11 @@ export class CommandRegistrationService {
         // Log siempre para verificar que funciona (usando console.log y Logger.error)
         console.log('[FastStruct] Health Check - Debug:', isDebugEnabled);
         console.log('[FastStruct] Extension Path:', context.extensionPath);
-        console.log('[FastStruct] Extension URI:', context.extensionUri.toString());
+        try {
+          console.log('[FastStruct] Extension URI:', context.extensionUri?.toString() || 'N/A');
+        } catch (error) {
+          console.log('[FastStruct] Extension URI: Error getting URI');
+        }
         
         // Verificar archivos críticos
         const fs = require('fs');

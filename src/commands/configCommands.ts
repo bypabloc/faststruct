@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { ConfigWebviewProvider } from '@/providers/ConfigWebviewProvider';
-import { ConfigurationService } from '@/services/ConfigurationService';
-import { Logger } from '@/logger';
+import { ConfigWebviewProvider } from '../providers/ConfigWebviewProvider';
+import { ConfigurationService } from '../services/ConfigurationService';
+import { Logger } from '../logger';
 
 /**
  * Registra todos los comandos relacionados con configuración.
@@ -16,12 +16,12 @@ export function registerConfigCommands(context: vscode.ExtensionContext): vscode
   const configProvider = new ConfigWebviewProvider(context);
   const configService = ConfigurationService.getInstance();
   
-  // Comando para abrir la configuración
+  // Comando para abrir la configuración con interfaz webview moderna
   disposables.push(
     vscode.commands.registerCommand(
       'faststruct.openSettings',
       () => {
-        Logger.info('Comando openSettings ejecutado');
+        Logger.info('Comando openSettings ejecutado - abriendo webview de configuración');
         configProvider.show();
       }
     )

@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { Logger } from '@/logger';
-import { FileChange } from '@/services/DiffAnalysisService';
-import { GitOperationsService } from '@/services/GitOperationsService';
-import { MoveDetectionService } from '@/services/MoveDetectionService';
+import { Logger } from '../logger';
+import { FileChange } from './DiffAnalysisService';
+import { GitOperationsService } from './GitOperationsService';
+import { MoveDetectionService } from './MoveDetectionService';
 
 export interface TreeNodeWithChanges {
   type: 'file' | 'directory';

@@ -6,4 +6,4 @@
  */
 
 // Re-exportar todos los tipos desde config.types.ts
-export * from '@/types/config.types';
+export * from './config.types';

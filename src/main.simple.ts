@@ -1,7 +1,99 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { Logger } from "@/logger";
+import { Logger } from "./logger";
+
+// Importación con múltiples intentos y fallbacks
+let ConfigWebviewProvider: any;
+console.log("🔍 Iniciando carga de ConfigWebviewProvider...");
+
+// Intento 1: Con alias @
+try {
+  console.log("📂 Intento 1: require('@/providers/ConfigWebviewProvider')...");
+  const module = require("@/providers/ConfigWebviewProvider");
+  console.log("✓ Módulo cargado con @:", Object.keys(module));
+  
+  ConfigWebviewProvider = module.ConfigWebviewProvider;
+  console.log("✓ ConfigWebviewProvider extraído:", typeof ConfigWebviewProvider);
+  
+  if (!ConfigWebviewProvider) {
+    throw new Error("ConfigWebviewProvider is undefined in module");
+  }
+  
+  console.log("✅ ConfigWebviewProvider cargado exitosamente con @");
+} catch (aliasError) {
+  console.error("❌ Intento 1 falló con @:");
+  console.error("   Error:", aliasError instanceof Error ? aliasError.message : String(aliasError));
+  
+  // Intento 2: Sin alias, path relativo
+  try {
+    console.log("📂 Intento 2: require('./providers/ConfigWebviewProvider')...");
+    const module = require("./providers/ConfigWebviewProvider");
+    console.log("✓ Módulo cargado sin @:", Object.keys(module));
+    
+    ConfigWebviewProvider = module.ConfigWebviewProvider;
+    console.log("✓ ConfigWebviewProvider extraído:", typeof ConfigWebviewProvider);
+    
+    if (!ConfigWebviewProvider) {
+      throw new Error("ConfigWebviewProvider is undefined in module");
+    }
+    
+    console.log("✅ ConfigWebviewProvider cargado exitosamente sin @");
+  } catch (relativeError) {
+    console.error("❌ Intento 2 falló sin @:");
+    console.error("   Error:", relativeError instanceof Error ? relativeError.message : String(relativeError));
+    
+    // Intento 3: Path absoluto
+    try {
+      console.log("📂 Intento 3: path absoluto...");
+      const absolutePath = path.join(__dirname, 'providers', 'ConfigWebviewProvider.js');
+      console.log("   Path absoluto:", absolutePath);
+      
+      const module = require(absolutePath);
+      console.log("✓ Módulo cargado con path absoluto:", Object.keys(module));
+      
+      ConfigWebviewProvider = module.ConfigWebviewProvider;
+      console.log("✓ ConfigWebviewProvider extraído:", typeof ConfigWebviewProvider);
+      
+      if (!ConfigWebviewProvider) {
+        throw new Error("ConfigWebviewProvider is undefined in module");
+      }
+      
+      console.log("✅ ConfigWebviewProvider cargado exitosamente con path absoluto");
+    } catch (absoluteError) {
+      console.error("❌ Intento 3 falló con path absoluto:");
+      console.error("   Error:", absoluteError instanceof Error ? absoluteError.message : String(absoluteError));
+      
+      // Diagnósticos finales
+      console.error("🔍 Diagnósticos finales:");
+      console.error("   Current __dirname:", __dirname);
+      
+      try {
+        const providersPath = path.join(__dirname, 'providers');
+        console.log("📁 Verificando directorio providers:", providersPath);
+        console.log("   Existe:", fs.existsSync(providersPath));
+        
+        if (fs.existsSync(providersPath)) {
+          const files = fs.readdirSync(providersPath);
+          console.log("   Archivos en providers:", files);
+          
+          const configFile = path.join(providersPath, 'ConfigWebviewProvider.js');
+          console.log("   ConfigWebviewProvider.js existe:", fs.existsSync(configFile));
+          
+          if (fs.existsSync(configFile)) {
+            const stats = fs.statSync(configFile);
+            console.log("   Tamaño del archivo:", stats.size, "bytes");
+            console.log("   Última modificación:", stats.mtime);
+          }
+        }
+      } catch (diagError) {
+        console.error("❌ Error en diagnósticos:", diagError);
+      }
+      
+      ConfigWebviewProvider = null;
+    }
+  }
+}
 
 /**
  * Función de activación simplificada para debug.
@@ -19,6 +111,30 @@ export function activate(context: vscode.ExtensionContext) {
   outputChannel.appendLine(`Extension Path: ${context.extensionPath}`);
   outputChannel.appendLine(`Extension URI: ${context.extensionUri.toString()}`);
   outputChannel.appendLine('='.repeat(60));
+  
+  // Variable para el webview provider
+  let configProvider: any = null;
+  
+  // Crear instancia del ConfigWebviewProvider si está disponible
+  outputChannel.appendLine(`🔍 Estado de ConfigWebviewProvider: ${ConfigWebviewProvider ? 'Disponible' : 'No disponible'}`);
+  outputChannel.appendLine(`🔍 Tipo: ${typeof ConfigWebviewProvider}`);
+  
+  if (ConfigWebviewProvider) {
+    try {
+      outputChannel.appendLine('Creando instancia de ConfigWebviewProvider...');
+      configProvider = new ConfigWebviewProvider(context);
+      outputChannel.appendLine('✓ ConfigWebviewProvider instanciado exitosamente');
+      outputChannel.appendLine(`✓ Tipo de instancia: ${typeof configProvider}`);
+      outputChannel.appendLine(`✓ Métodos disponibles: ${Object.getOwnPropertyNames(Object.getPrototypeOf(configProvider))}`);
+    } catch (error) {
+      outputChannel.appendLine(`✗ ERROR instanciando ConfigWebviewProvider: ${error}`);
+      outputChannel.appendLine(`✗ Stack trace: ${error instanceof Error ? error.stack : 'No stack trace'}`);
+      console.error('Error creating ConfigWebviewProvider instance:', error);
+    }
+  } else {
+    outputChannel.appendLine('⚠️ ConfigWebviewProvider no disponible - usando fallback');
+    outputChannel.appendLine('🔍 Revisa la consola para detalles del error de importación');
+  }
   
   try {
     // Inicializar Logger
@@ -153,10 +269,23 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('FastStruct TEST OK!');
     });
 
-    // Settings commands
+    // Settings commands - usando webview moderna con fallback
     const openSettingsCommand = vscode.commands.registerCommand('faststruct.openSettings', () => {
-      vscode.commands.executeCommand('workbench.action.openSettings', 'faststruct');
-      outputChannel.appendLine('Abriendo configuración de FastStruct');
+      try {
+        if (configProvider) {
+          outputChannel.appendLine('Abriendo configuración de FastStruct con webview');
+          configProvider.show();
+        } else {
+          outputChannel.appendLine('ConfigWebviewProvider no disponible, usando fallback');
+          outputChannel.appendLine('Abriendo configuración estándar de VS Code');
+          vscode.commands.executeCommand('workbench.action.openSettings', 'faststruct');
+        }
+      } catch (error) {
+        outputChannel.appendLine(`✗ ERROR abriendo configuración: ${error}`);
+        console.error('Error opening settings:', error);
+        // Fallback final
+        vscode.commands.executeCommand('workbench.action.openSettings', 'faststruct');
+      }
     });
 
     const checkConfigCommand = vscode.commands.registerCommand('faststruct.checkConfig', () => {
@@ -373,6 +502,90 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`La carpeta "${folderName}" ya está excluida`);
       }
     });
+
+    // Build and reload commands
+    const buildLocalCommand = vscode.commands.registerCommand('faststruct.buildLocal', async () => {
+      try {
+        outputChannel.appendLine('🔨 Iniciando build local...');
+        const terminal = vscode.window.createTerminal({
+          name: 'FastStruct Build',
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+        });
+        
+        terminal.show();
+        terminal.sendText('pnpm build:local');
+        outputChannel.appendLine('✓ Comando build:local enviado al terminal');
+        
+        vscode.window.showInformationMessage(
+          '🔨 Build iniciado. Revisa el terminal para ver el progreso.',
+          'Ver Terminal'
+        ).then(selection => {
+          if (selection === 'Ver Terminal') {
+            terminal.show();
+          }
+        });
+      } catch (error) {
+        outputChannel.appendLine(`✗ ERROR ejecutando build: ${error}`);
+        vscode.window.showErrorMessage(`Error ejecutando build: ${error}`);
+      }
+    });
+
+    const reloadWindowCommand = vscode.commands.registerCommand('faststruct.reloadWindow', async () => {
+      try {
+        outputChannel.appendLine('🔄 Recargando ventana de desarrollo...');
+        vscode.window.showInformationMessage(
+          '🔄 ¿Recargar la ventana para aplicar cambios?',
+          'Sí, recargar',
+          'Cancelar'
+        ).then(selection => {
+          if (selection === 'Sí, recargar') {
+            outputChannel.appendLine('✓ Recargando ventana...');
+            vscode.commands.executeCommand('workbench.action.reloadWindow');
+          }
+        });
+      } catch (error) {
+        outputChannel.appendLine(`✗ ERROR recargando ventana: ${error}`);
+        vscode.window.showErrorMessage(`Error recargando ventana: ${error}`);
+      }
+    });
+
+    const buildAndReloadCommand = vscode.commands.registerCommand('faststruct.buildAndReload', async () => {
+      try {
+        outputChannel.appendLine('🔨🔄 Iniciando build + reload...');
+        
+        const terminal = vscode.window.createTerminal({
+          name: 'FastStruct Build & Reload',
+          cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+        });
+        
+        terminal.show();
+        terminal.sendText('pnpm build:local && echo "Build completado. Presiona cualquier tecla para recargar..." && read && exit');
+        outputChannel.appendLine('✓ Build iniciado, se recargará automáticamente al completar');
+        
+        // Escuchar cuando el terminal se cierre para recargar
+        const disposable = vscode.window.onDidCloseTerminal(closedTerminal => {
+          if (closedTerminal === terminal) {
+            outputChannel.appendLine('✓ Build completado, recargando ventana...');
+            setTimeout(() => {
+              vscode.commands.executeCommand('workbench.action.reloadWindow');
+            }, 1000);
+            disposable.dispose();
+          }
+        });
+        
+        vscode.window.showInformationMessage(
+          '🔨🔄 Build iniciado. La ventana se recargará automáticamente al completar.',
+          'Ver Terminal'
+        ).then(selection => {
+          if (selection === 'Ver Terminal') {
+            terminal.show();
+          }
+        });
+      } catch (error) {
+        outputChannel.appendLine(`✗ ERROR ejecutando build + reload: ${error}`);
+        vscode.window.showErrorMessage(`Error ejecutando build + reload: ${error}`);
+      }
+    });
     
     // Registrar todos los comandos
     context.subscriptions.push(
@@ -391,6 +604,9 @@ export function activate(context: vscode.ExtensionContext) {
       showExclusionsCommand,
       excludeFileCommand,
       excludeFolderCommand,
+      buildLocalCommand,
+      reloadWindowCommand,
+      buildAndReloadCommand,
       testCommand,
       outputChannel
     );

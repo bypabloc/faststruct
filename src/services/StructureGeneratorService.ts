@@ -1,8 +1,8 @@
 import * as path from 'path';
-import { TreeItem, FastStructConfig, StructureGenerationOptions } from '@/types';
-import { FileSystemService } from '@/services/FileSystemService';
-import { OutputFormatterService } from '@/services/OutputFormatterService';
-import { Logger } from '@/logger';
+import { TreeItem, FastStructConfig, StructureGenerationOptions } from '../types';
+import { FileSystemService } from './FileSystemService';
+import { OutputFormatterService } from './OutputFormatterService';
+import { Logger } from '../logger';
 
 /**
  * Servicio para generar la estructura del proyecto.
